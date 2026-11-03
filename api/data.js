@@ -19,14 +19,18 @@ export default async function handler(req, res) {
 
         // v1.2 (saves Vercel usage): these lists are the same for everybody, so Vercel's edge cache answers them
         // (no function run, no database read) for a few minutes instead of every single request.
+        // 3 Nov 2026: PAGINATED too (page, limit<=50) - answers { videos, page, hasMore }. Old callers that send no page still get the first 50.
         if (type === 'videos') {
             res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
-            const videos = await db.collection('videos')
+            const page = Math.max(1, Math.min(200, parseInt(req.query.page) || 1));
+            const limit = Math.max(1, Math.min(50, parseInt(req.query.limit) || 50));
+            const rows = await db.collection('videos')
                 .find({ isActive: true })
-                .sort({ createdAt: -1 })
-                .limit(50)
+                .sort({ createdAt: -1, _id: -1 })
+                .skip((page - 1) * limit)
+                .limit(limit + 1)
                 .toArray();
-            return res.status(200).json({ ok: true, videos });
+            return res.status(200).json({ ok: true, videos: rows.slice(0, limit), page, hasMore: rows.length > limit });
         }
 
         // 24 Oct 2026: PAGINATED (page, limit<=30) + only the fields the phone needs (smaller answer, no internal ids).
@@ -45,6 +49,29 @@ export default async function handler(req, res) {
             const hasMore = rows.length > limit;
             const tasks = rows.slice(0, limit).map(({ logoFileId, ...t }) => ({ ...t, hasLogo: !!logoFileId }));
             return res.status(200).json({ ok: true, tasks, page, hasMore });
+        }
+
+        // 2 Nov 2026: the pinned TEAM ZERO task - its logo is set by the admin from the bot (📌 Pinned Logo). Small answer, cached 2 minutes.
+        if (type === 'pinnedTask') {
+            res.setHeader('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=300');
+            const d = await db.collection('botSettings').findOne({ _id: 'pinnedTask' });
+            const logoUrl = d && d.logoUrl && /^https:\/\//i.test(d.logoUrl) ? d.logoUrl : null;
+            return res.status(200).json({ ok: true, hasLogo: !!(d && d.logoFileId), logoUrl, v: d && d.updatedAt ? new Date(d.updatedAt).getTime() : 0 });
+        }
+        if (type === 'pinnedLogo') {
+            const d = await db.collection('botSettings').findOne({ _id: 'pinnedTask' }, { projection: { logoFileId: 1 } });
+            if (!d || !d.logoFileId) { res.setHeader('Cache-Control', 'public, s-maxage=60'); return res.status(404).end(); }
+            const f = await tgApi('getFile', { file_id: d.logoFileId });
+            const path = f && f.ok && f.result && f.result.file_path;
+            if (!path || !/^[\w\/.-]+$/.test(path)) { res.setHeader('Cache-Control', 'public, s-maxage=60'); return res.status(404).end(); }
+            const img = await fetch(`https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${path}`);
+            if (!img.ok) { res.setHeader('Cache-Control', 'public, s-maxage=60'); return res.status(404).end(); }
+            const buf = Buffer.from(await img.arrayBuffer());
+            if (buf.length > 1024 * 1024) return res.status(404).end();
+            res.setHeader('Content-Type', path.endsWith('.png') ? 'image/png' : path.endsWith('.webp') ? 'image/webp' : 'image/jpeg');
+            res.setHeader('Cache-Control', 'public, max-age=604800, s-maxage=604800, immutable'); // the page adds ?v=<updatedAt>, so a new logo = a new URL
+            res.setHeader('X-Content-Type-Options', 'nosniff');
+            return res.status(200).send(buf);
         }
 
         // Task logo (24 Oct 2026): the admin sends a photo to the bot, we keep only its Telegram file_id. This turns it into a normal image
@@ -74,13 +101,17 @@ export default async function handler(req, res) {
         // reset needed here, it's the same field/collection.
         if (type === 'weeklyContest') {
             res.setHeader('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=300');
-            const top = await db.collection('users')
+            // 3 Nov 2026: PAGINATED (page, limit<=20, default 10, max 10 pages = top 200). `offset` = rank of the first row minus 1.
+            const page = Math.max(1, Math.min(10, parseInt(req.query.page) || 1));
+            const limit = Math.max(1, Math.min(20, parseInt(req.query.limit) || 10));
+            const rows = await db.collection('users')
                 .find({ isBanned: { $ne: true }, weeklyReferralCount: { $gt: 0 } })
                 .project({ telegramUsername: 1, firstName: 1, weeklyReferralCount: 1 })
-                .sort({ weeklyReferralCount: -1 })
-                .limit(10)
+                .sort({ weeklyReferralCount: -1, _id: 1 })
+                .skip((page - 1) * limit)
+                .limit(limit + 1)
                 .toArray();
-            return res.status(200).json({ ok: true, top });
+            return res.status(200).json({ ok: true, top: rows.slice(0, limit), page, offset: (page - 1) * limit, hasMore: rows.length > limit && page < 10 });
         }
 
         return res.status(400).json({ ok: false, error: 'unknown_type' });
@@ -88,4 +119,4 @@ export default async function handler(req, res) {
         console.error('data error:', err);
         return res.status(500).json({ ok: false, error: 'server_error' });
     }
-            }
+                }
