@@ -40,7 +40,6 @@ export default async function handler(req, res) {
                 { bannedAt: 1 },
                 { expireAfterSeconds: 5184000, partialFilterExpression: { isBanned: true } }
             )],
-            ['videos.isActive+createdAt', () => db.collection('videos').createIndex({ isActive: 1, createdAt: -1 })],
             ['tasks.isApproved+category+createdAt', () => db.collection('tasks').createIndex({ isApproved: 1, category: 1, createdAt: -1 })],
             ['withdrawals.userId+createdAt', () => db.collection('withdrawals').createIndex({ userId: 1, createdAt: -1 })],
             ['withdrawals.details', () => db.collection('withdrawals').createIndex({ details: 1 })],
@@ -53,9 +52,6 @@ export default async function handler(req, res) {
                 { expireAfterSeconds: 2592000, partialFilterExpression: { status: 'claimed' } }
             )],
             // 17 Oct 2026: the Spin Wheel was removed, so the old spinLogs indexes are no longer created (existing rows expire by themselves via the old 30-day TTL)
-            // 17 Oct 2026 — lootbox claim history (admin "Lootbox History 30d" + Fake/Real report): TTL 30 days + per-user lookup
-            ['lootboxLogs.createdAt (TTL 30d)', () => db.collection('lootboxLogs').createIndex({ createdAt: 1 }, { expireAfterSeconds: 2592000 })],
-            ['lootboxLogs.userId+createdAt', () => db.collection('lootboxLogs').createIndex({ userId: 1, createdAt: -1 })],
             ['weeklyReferralReports.weekEndedAt', () => db.collection('weeklyReferralReports').createIndex({ weekEndedAt: -1 })],
             ['adminState.updatedAt (TTL 1h)', () => db.collection('adminState').createIndex({ updatedAt: 1 }, { expireAfterSeconds: 3600 })],
             // resumable broadcast jobs (lib/broadcastJob.js). One doc
@@ -100,4 +96,4 @@ export default async function handler(req, res) {
     } catch (err) {
         return res.status(500).json({ ok: false, error: 'server_error', message: err.message, results });
     }
-                                     }
+}
