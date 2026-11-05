@@ -1,5 +1,4 @@
 // api/data.js — public read-only data for the mini app.
-//   GET /api/data?type=videos
 //   GET /api/data?type=tasks
 //   GET /api/data?type=leaderboard        (top 20 by referralCount)
 //   GET /api/data?type=weeklyContest      (top 10 by weeklyReferralCount)
@@ -19,19 +18,6 @@ export default async function handler(req, res) {
 
         // v1.2 (saves Vercel usage): these lists are the same for everybody, so Vercel's edge cache answers them
         // (no function run, no database read) for a few minutes instead of every single request.
-        // 3 Nov 2026: PAGINATED too (page, limit<=50) - answers { videos, page, hasMore }. Old callers that send no page still get the first 50.
-        if (type === 'videos') {
-            res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
-            const page = Math.max(1, Math.min(200, parseInt(req.query.page) || 1));
-            const limit = Math.max(1, Math.min(50, parseInt(req.query.limit) || 50));
-            const rows = await db.collection('videos')
-                .find({ isActive: true })
-                .sort({ createdAt: -1, _id: -1 })
-                .skip((page - 1) * limit)
-                .limit(limit + 1)
-                .toArray();
-            return res.status(200).json({ ok: true, videos: rows.slice(0, limit), page, hasMore: rows.length > limit });
-        }
 
         // 24 Oct 2026: PAGINATED (page, limit<=30) + only the fields the phone needs (smaller answer, no internal ids).
         // Full tasks and stale pages are skipped. Each page URL is cached at Vercel's edge, so many users share one database read.
@@ -51,7 +37,7 @@ export default async function handler(req, res) {
             return res.status(200).json({ ok: true, tasks, page, hasMore });
         }
 
-        // 2 Nov 2026: the pinned TEAM ZERO task - its logo is set by the admin from the bot (📌 Pinned Logo). Small answer, cached 2 minutes.
+        // 2 Nov 2026: the pinned GameVo Mine Pay task - its logo is set by the admin from the bot (📌 Pinned Logo). Small answer, cached 2 minutes.
         if (type === 'pinnedTask') {
             res.setHeader('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=300');
             const d = await db.collection('botSettings').findOne({ _id: 'pinnedTask' });
@@ -119,4 +105,4 @@ export default async function handler(req, res) {
         console.error('data error:', err);
         return res.status(500).json({ ok: false, error: 'server_error' });
     }
-                }
+    }
