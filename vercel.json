@@ -1,10 +1,5 @@
 {
     "$schema": "https://openapi.vercel.sh/vercel.json",
-    "functions": {
-        "api/*.js": {
-            "maxDuration": 30
-        }
-    },
     "headers": [
         {
             "source": "/",
@@ -25,7 +20,7 @@
             ]
         },
         {
-            "source": "/index.html",
+            "source": "/config.js",
             "headers": [
                 {
                     "key": "Cache-Control",
@@ -34,23 +29,11 @@
             ]
         },
         {
-            "source": "/game.html",
+            "source": "/index.html",
             "headers": [
                 {
                     "key": "Cache-Control",
-                    "value": "public, max-age=300, must-revalidate"
-                },
-                {
-                    "key": "X-Content-Type-Options",
-                    "value": "nosniff"
-                },
-                {
-                    "key": "Referrer-Policy",
-                    "value": "strict-origin-when-cross-origin"
-                },
-                {
-                    "key": "Permissions-Policy",
-                    "value": "camera=(), microphone=(), geolocation=()"
+                    "value": "no-cache, must-revalidate"
                 }
             ]
         },
