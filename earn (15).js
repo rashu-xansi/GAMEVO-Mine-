@@ -1,0 +1,1118 @@
+// api/earn.js — CONSOLIDATED + SECURITY FIX (Telegram initData verification)
+//
+// Previously every action trusted the client-supplied userId. Now every
+// request requires a verified initData, and the userId extracted from it is
+// the only one used — the client can never act as someone else by sending a
+// different userId.
+//
+// every GM coin-crediting action now also checks
+// REWARD_ELIGIBLE_FILTER — a multi-account-flagged user earns NOTHING new
+// until they verify channel+community membership. This is NOT retroactive
+// (no held/pending balance to release later) — reward simply stays blocked
+// until verified, then unblocks going forward. Progress/counters still
+// advance normally EXCEPT completedTasks (see handleTaskComplete for why).
+//
+// claimAdReward used to trust the client's
+// bare `{ network }` with zero proof an ad was ever shown. A script that
+// simply replayed the same POST request (found being distributed publicly —
+// a Termux-based auto-farming bot targeting this exact endpoint) could drain
+// the daily ad reward in seconds without watching anything. Fixed the same
+// way the other claims already protect themselves: the client must first request a
+// short-lived signed token (adStart) — issued the moment the user taps
+// "Watch" — then submit that exact token back with claimAdReward. The
+// server verifies: (1) the HMAC signature is genuine, (2) at least
+// AD_MIN_WATCH_SECONDS has elapsed since the token was issued, (3) the token
+// hasn't been spent already (single-use, atomic, mirrors usedAdStarts).
+// This doesn't require watching pixel-perfect ad content, but it closes the
+// "call claimAdReward directly with no ad token at all" hole that the bot
+// script exploited, and rate-limits any script that adapts to still call
+// adStart first.
+//
+//   { action: 'adStart',       initData, network }
+//   { action: 'claimAdReward', initData, network, startTime, signature }
+//   { action: 'taskComplete',  initData, taskId, startTime?, signature? }  — ⚠️ CHANGED, startTime/signature now required for non-'channel' categories
+//   { action: 'taskStart',     initData, taskId }                          — ⚠️ NEW, security fix
+//   { action: 'claimPromo',    initData, code }
+
+import crypto from 'crypto';
+import { ObjectId } from 'mongodb';
+import { connectToDatabase } from '../lib/mongodb.js';
+import { isMember, tgSend, tgEdit, tgEditCaption, OFFICIAL_CHANNEL } from '../lib/telegram.js';
+import { ensureDailyReset } from '../lib/dailyReset.js';
+import { maybeAwardReferralMilestones } from '../lib/referral.js';
+import { verifyTelegramInitData } from '../lib/telegramAuth.js';
+import { rateLimited } from '../lib/rateLimit.js';
+import { cleanTonAddress } from '../lib/tonAddress.js';
+import { detectBotPattern, lockForBotPattern, AD_CLAIM_HISTORY_KEEP } from '../lib/botGuard.js';
+import {
+    AD_NETWORK_REWARDS, AD_MIN_WATCH_SECONDS, AD_VIEW_TOLERANCE_SECONDS, AD_COOLDOWN_SECONDS, TASK_MIN_WAIT_SECONDS, TASK_COOLDOWN_SECONDS,
+    MINING_REWARD, MINING_COOLDOWN_HOURS, MINING_AD_NETWORKS, MINING_BOOST_TIERS,
+    GAME_TOKEN_MAX, GAME_TOKEN_REGEN_HOURS, GAME_REWARD_MIN, GAME_REWARD_MAX, GAME_MIN_RUN_SECONDS, GAME_RUN_MAX_AGE_HOURS,
+    PROMO_FAIL_LIMIT, PROMO_FAIL_WINDOW_MS,
+    MIN_WITHDRAW_WTC, WITHDRAW_FEE_PERCENT, WTC_PER_USD,
+    TEAM_CHANNEL, TEAM_CHANNEL_REWARD,
+    todayStartBD,
+} from '../lib/constants.js';
+
+const SECRET = process.env.SIGNING_SECRET;
+const sign = (userId, startTime) => crypto.createHmac('sha256', SECRET).update(`${userId}:${startTime}`).digest('hex');
+
+// separate signing namespace for ad-watch tokens (same secret, but
+// prefixed + includes the network name, so an ad-token can never be replayed
+// as another token type or vice versa, and a token for one network can't be
+// reused to claim a different network's reward).
+const signAdStart = (userId, network, startTime) =>
+    crypto.createHmac('sha256', SECRET).update(`ad:${userId}:${network}:${startTime}`).digest('hex');
+
+// separate signing namespace for task-claim tokens. Mirrors
+// signAdStart exactly: includes taskId so a token for one task can never be
+// replayed to claim a different task.
+const signTaskStart = (userId, taskId, startTime) =>
+    crypto.createHmac('sha256', SECRET).update(`task:${userId}:${taskId}:${startTime}`).digest('hex');
+
+// 17 Oct 2026: the Spin Wheel (and its signSpinStart token) was fully removed.
+
+// the channelVerified bypass below used to
+// apply unconditionally to ANY flagged account. Since joining the
+// channel/community is mandatory just to use the app at all (the join-gate
+// every user passes through), that bypass was satisfied automatically by
+// normal use — in practice it blocked nobody. Combined with the
+// zero-cost-for-fresh-accounts "Switch Account" gap (see lib/ipRegistry.js),
+// someone could spin up unlimited fresh accounts on one device and each one
+// would earn completely normally the moment they joined the channel (which
+// they'd do anyway). Now the bypass only applies up to
+// MULTI_ACCOUNT_SIBLING_HARD_LIMIT other accounts sharing this device's
+// fingerprint — plausible for a family/shared device. Beyond that (a device
+// with many more accounts on it — a much stronger farming signal), earning
+// stays blocked even after channel-verifying; unblocking those needs an
+// admin to actually clear multiAccountFlag after review (admin-panel button
+// for that is a separate follow-up, not yet built).
+const MULTI_ACCOUNT_SIBLING_HARD_LIMIT = 2;
+const REWARD_ELIGIBLE_FILTER = {
+    $or: [
+        { multiAccountFlag: { $ne: true } },
+        {
+            $and: [
+                { channelVerified: true },
+                { $expr: { $lte: [{ $size: { $ifNull: ['$multiAccountSiblings', []] } }, MULTI_ACCOUNT_SIBLING_HARD_LIMIT] } },
+            ],
+        },
+    ],
+};
+
+// ── adStart ── ⚠️ NEW — issues a short-lived signed token the instant the
+// user taps "Watch" on an ad-network card, BEFORE the ad SDK is even called.
+// No DB write, no reward — just a signature the client must carry through
+// the real ad flow and hand back to claimAdReward. A script that skips
+// straight to claimAdReward with no token (or a stale/forged one) is
+// rejected outright.
+async function handleAdStart(req, res, db, userId) {
+    const { network } = req.body;
+    const netConfig = AD_NETWORK_REWARDS[network];
+    if (!netConfig) return res.status(400).json({ ok: false, error: 'invalid_network' });
+    // networks marked enabled:false (pending approval)
+    // are visible in the UI as "Coming Soon" but can't actually be started.
+    if (netConfig.enabled === false) return res.status(400).json({ ok: false, error: 'coming_soon' });
+    if (netConfig.s2s) return res.status(400).json({ ok: false, error: 'server_confirmed_only' }); // Adsgram S2S networks are paid by api/earn.js?s2s=adsgram, never by the client
+    if (!SECRET) return res.status(500).json({ ok: false, error: 'server_misconfigured' });
+
+    const startTime = Date.now();
+    return res.status(200).json({ ok: true, startTime, signature: signAdStart(userId, network, startTime) });
+}
+
+// ── claimAdReward ── ⚠️ NOW GATED + TOKEN-VERIFIED (see file header for why)
+const COUNTER_FIELD = {
+    adsgramDaily: 'adsgramDailyCountToday',
+    adsgramSpecial: 'adsgramSpecialCountToday', // ⚠️ NEW — re-added Special Ads network
+    adsgramTask: 'adsgramTaskCountToday',    // 🎯 NEW — Adsgram Task ad format
+    monetag: 'monetagCountToday', giga: 'gigaCountToday',
+};
+async function handleClaimAdReward(req, res, db, userId) {
+    const { network, startTime, signature, viewMs } = req.body;
+    const config = AD_NETWORK_REWARDS[network];
+    if (!config) return res.status(400).json({ ok: false, error: 'invalid_network' });
+    // mirrors handleAdStart's guard, in case a stale/forged token
+    // is ever replayed against a network that's disabled (coming soon).
+    if (config.enabled === false) return res.status(400).json({ ok: false, error: 'coming_soon' });
+    if (config.s2s) return res.status(400).json({ ok: false, error: 'server_confirmed_only' }); // see handleAdsgramS2S
+
+    // GigaPub has NO server-to-server confirmation (5 Nov 2026: GigaPub support only enables it after 5K impressions/week), so it is paid by
+    // the client-side barriers below: signed single-use token + minimum watch time + AD cooldown + bot-pattern guard + daily limit.
+
+    // 12 Oct 2026 (admin request) — networks flagged `noSecurity` (Monetag + Monetag Popup)
+    // skip EVERYTHING ad-specific: no adStart token, no min-watch timer, no viewMs check,
+    // no single-use key, no AD cooldown, no bot-pattern scoring. What still applies:
+    // banned / bot-locked accounts, multi-account review gate, and the daily limit
+    // (the atomic counter below is the only thing capping how much a user can take).
+    if (config.noSecurity) {
+        const nsUsers = db.collection('users');
+        const nsField = COUNTER_FIELD[network];
+        await ensureDailyReset(nsUsers, userId);
+        const nsLock = await nsUsers.findOne({ _id: userId }, { projection: { accountLocked: 1, accountLockedReason: 1 } });
+        if (nsLock?.accountLocked && nsLock.accountLockedReason === 'bot_pattern') {
+            return res.status(403).json({ ok: false, error: 'account_locked' });
+        }
+        // dailyLimit === null means UNLIMITED (adsgramTask). minGapSeconds (optional) = anti-spam gap between claims.
+        const nsLimited = config.dailyLimit != null;
+        const nsGapField = 'lastNsClaimAt_' + network;
+        const nsAnd = [REWARD_ELIGIBLE_FILTER];
+        if (nsLimited) nsAnd.push({ $or: [{ [nsField]: { $exists: false } }, { [nsField]: { $lt: config.dailyLimit } }] }); // missing counter (new network, user already reset today) counts as 0
+        if (config.minGapSeconds) {
+            const nsCutoff = new Date(Date.now() - config.minGapSeconds * 1000);
+            nsAnd.push({ $or: [{ [nsGapField]: { $exists: false } }, { [nsGapField]: { $lte: nsCutoff } }] });
+        }
+        const nsGate = await nsUsers.findOneAndUpdate(
+            { _id: userId, isBanned: { $ne: true }, $and: nsAnd },
+            { $inc: { wtcBalance: config.reward, lifetimeWtcEarned: config.reward, [nsField]: 1, }, ...(config.minGapSeconds ? { $set: { [nsGapField]: new Date() } } : {}) }, // deliberately NOT counted in adsWatchedToday / lifetimeAdsWatched (not a real ad-view proof)
+            { returnDocument: 'after' }
+        );
+        if (!nsGate) {
+            const nsExists = await nsUsers.findOne({ _id: userId }, { projection: { isBanned: 1, multiAccountFlag: 1, channelVerified: 1, [nsGapField]: 1 } });
+            if (nsExists) nsExists.lastNsGapAt = nsExists[nsGapField];
+            if (!nsExists) return res.status(404).json({ ok: false, error: 'user_not_found' });
+            if (nsExists.isBanned) return res.status(403).json({ ok: false, error: 'banned' });
+            if (nsExists.multiAccountFlag && !nsExists.channelVerified) return res.status(403).json({ ok: false, error: 'account_under_review' });
+            // was: any failure on a limited network said "daily_limit_reached" — wrong now that Adsgram Daily also has a 60s gap.
+            if (config.minGapSeconds && nsExists.lastNsGapAt) {
+                const wait = new Date(nsExists.lastNsGapAt).getTime() + config.minGapSeconds * 1000 - Date.now();
+                if (wait > 0) return res.status(400).json({ ok: false, error: 'ad_cooldown', retryAfterMs: wait });
+            }
+            return res.status(400).json({ ok: false, error: nsLimited ? 'daily_limit_reached' : 'ad_cooldown' });
+        }
+        return res.status(200).json({ ok: true, reward: config.reward, countToday: nsGate[nsField], dailyLimit: config.dailyLimit });
+    }
+
+    // the token issued by adStart is now mandatory.
+    if (!startTime || !signature) {
+        return res.status(400).json({ ok: false, error: 'missing_ad_token' });
+    }
+    if (signAdStart(userId, network, startTime) !== signature) {
+        return res.status(400).json({ ok: false, error: 'invalid_ad_token' });
+    }
+    const elapsedSeconds = (Date.now() - Number(startTime)) / 1000;
+    if (isNaN(elapsedSeconds) || elapsedSeconds < 0) {
+        return res.status(400).json({ ok: false, error: 'invalid_ad_token' });
+    }
+    // was the shared AD_MIN_WATCH_SECONDS floor for every
+    // network. Now uses THIS network's own minWatchSeconds (see
+    // AD_NETWORK_REWARDS in lib/constants.js), falling back to the shared
+    // constant for any network that doesn't set one. Must have taken at
+    // least that many seconds since the token was issued — a genuine ad SDK
+    // flow always takes real wall-clock time (loading + showing the ad); an
+    // instant claim right after adStart means no ad was actually shown.
+    const minWatchSeconds = config.minWatchSeconds ?? AD_MIN_WATCH_SECONDS;
+    if (elapsedSeconds < minWatchSeconds) {
+        return res.status(400).json({ ok: false, error: 'watch_time_too_short' });
+    }
+    // real ad-on-screen time, measured by the client from
+    // "ad shown" to "ad finished/closed". Must be >= this network's
+    // minWatchSeconds (closing earlier = no reward) and can't exceed the whole
+    // adStart→claim time (it is a part of it). Missing/invalid value = rejected.
+    const viewSeconds = Number(viewMs) / 1000;
+    if (!Number.isFinite(viewSeconds) || viewSeconds < 0) {
+        return res.status(400).json({ ok: false, error: 'missing_view_time' });
+    }
+    if (viewSeconds < minWatchSeconds) {
+        return res.status(400).json({ ok: false, error: 'watch_time_too_short' });
+    }
+    if (viewSeconds > elapsedSeconds + AD_VIEW_TOLERANCE_SECONDS) {
+        return res.status(400).json({ ok: false, error: 'invalid_view_time' });
+    }
+    // ⚠️ Token also expires after 5 minutes — prevents a script from
+    // stockpiling many pre-signed tokens ahead of time and burning through
+    // them later in a burst.
+    if (elapsedSeconds > 300) {
+        return res.status(400).json({ ok: false, error: 'ad_token_expired' });
+    }
+
+    const users = db.collection('users');
+    const counterField = COUNTER_FIELD[network];
+    await ensureDailyReset(users, userId);
+
+    // anti-script guard (see lib/botGuard.js). Accounts already
+    // locked for a bot pattern earn nothing more; otherwise the last few ad
+    // claims + this one are checked for mechanical timing (no gap, ultra-fast,
+    // identical cycles). A hit locks the account, alerts the admin, and rejects
+    // this claim without paying.
+    const guardDoc = await users.findOne({ _id: userId }, { projection: { accountLocked: 1, accountLockedReason: 1, recentAdClaims: 1 } });
+    if (guardDoc?.accountLocked && guardDoc.accountLockedReason === 'bot_pattern') {
+        return res.status(403).json({ ok: false, error: 'account_locked' });
+    }
+    const nowMs = Date.now();
+    const adSample = { s: Number(startTime), c: nowMs, w: Math.round(elapsedSeconds * 10) / 10, v: Math.round(viewSeconds * 10) / 10 }; // w = tap→claim (server-measured, incl. loading), v = ad on screen (client-reported)
+    const botHit = detectBotPattern([...(guardDoc?.recentAdClaims || []), adSample]);
+    if (botHit) {
+        // only rejects when the account was really locked (🔴 Likely script);
+        // otherwise the admin is just notified and the claim continues.
+        const adLocked = await lockForBotPattern(db, userId, botHit, tgSend, `Network: ${network}`, { samples: [...(guardDoc?.recentAdClaims || []), adSample] });
+        if (adLocked) return res.status(403).json({ ok: false, error: 'account_locked' });
+    }
+
+    // AD_COOLDOWN_SECONDS was defined in constants.js but never
+    // actually enforced anywhere. Wired in here: reject if the user's last
+    // successful ad claim (any network) was less than AD_COOLDOWN_SECONDS
+    // ago, so a script can't fire adStart→claimAdReward back-to-back with
+    // zero pacing between ads.
+    const cooldownCutoff = new Date(Date.now() - AD_COOLDOWN_SECONDS * 1000);
+
+    // the token itself is single-use: `${network}:${startTime}` is
+    // atomically checked-and-recorded in `usedAdStarts` in the very same
+    // update that credits the reward, mirroring usedAdStarts. Replaying
+    // the exact same token twice earns nothing the second time.
+    const adStartKey = `${network}:${startTime}`;
+    const gate = await users.findOneAndUpdate(
+        {
+            _id: userId,
+            isBanned: { $ne: true },
+            [counterField]: { $lt: config.dailyLimit },
+            usedAdStarts: { $ne: adStartKey },
+            // the cooldown `$or` used to sit next to `...REWARD_ELIGIBLE_FILTER`,
+            // which ALSO has a top-level `$or`. In a JS object the later key wins, so the
+            // cooldown check was silently thrown away. Both conditions now live in `$and`.
+            $and: [
+                { $or: [{ lastAdClaimAt: { $exists: false } }, { lastAdClaimAt: { $lte: cooldownCutoff } }] },
+                REWARD_ELIGIBLE_FILTER,
+            ],
+        },
+        {
+            $inc: { wtcBalance: config.reward, lifetimeWtcEarned: config.reward, lifetimeAdsWatched: 1, adsWatchedToday: 1, [counterField]: 1, },
+            
+            $addToSet: { usedAdStarts: adStartKey },
+            $set: { lastAdClaimAt: new Date() },
+            $push: { recentAdClaims: { $each: [adSample], $slice: -AD_CLAIM_HISTORY_KEEP } }, // recentAdClaims feeds lib/botGuard.js
+        },
+        { returnDocument: 'after' }
+    );
+
+    if (!gate) {
+        const exists = await users.findOne({ _id: userId }, { projection: { isBanned: 1, multiAccountFlag: 1, channelVerified: 1, usedAdStarts: 1, lastAdClaimAt: 1 } });
+        if (!exists) return res.status(404).json({ ok: false, error: 'user_not_found' });
+        if (exists.isBanned) return res.status(403).json({ ok: false, error: 'banned' });
+        if ((exists.usedAdStarts || []).includes(adStartKey)) {
+            return res.status(400).json({ ok: false, error: 'ad_token_already_used' });
+        }
+        if (exists.multiAccountFlag && !exists.channelVerified) {
+            return res.status(403).json({ ok: false, error: 'account_under_review' });
+        }
+        if (exists.lastAdClaimAt && exists.lastAdClaimAt > cooldownCutoff) {
+            return res.status(400).json({ ok: false, error: 'ad_cooldown', retryAfterMs: exists.lastAdClaimAt.getTime() + AD_COOLDOWN_SECONDS * 1000 - Date.now() });
+        }
+        return res.status(400).json({ ok: false, error: 'daily_limit_reached' });
+    }
+
+    await maybeAwardReferralMilestones(db, userId, { lifetimeAdsWatched: gate.lifetimeAdsWatched });
+    return res.status(200).json({ ok: true, reward: config.reward, countToday: gate[counterField], dailyLimit: config.dailyLimit });
+}
+
+// ══════════════════════════════════════════════════════════════
+// AD PROOFS used by Mining (14 Oct 2026; Spin was removed 17 Oct 2026)
+// Mining plays ONE Adsgram Special ad. The reward is paid only after Adsgram's OWN server confirmed the view:
+//   • Adsgram Special → Reward URL callback stored as `adsgramProof` (see handleAdsgramS2S)
+// ══════════════════════════════════════════════════════════════
+const ADS_PROOF_WINDOW_MS = 5 * 60 * 1000;
+const pickRandom = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+// Which ad networks can the server really VERIFY? Only adsgramSpecial (Adsgram's own server calls our Reward URL).
+// GigaPub is client-side only, so it can never be used as Mining proof.
+const verifiedNets = (list) => {
+    const ok = list.filter(n => n === 'adsgramSpecial');
+    return ok.length ? ok : ['adsgramSpecial'];
+};
+
+// Marks WHY the next Adsgram Special callback will arrive. purpose: 'mining' | 'earn' ('earn' / null = clear).
+async function setAdsgramIntent(users, userId, purpose) {
+    if (purpose === 'mining' || purpose === 'game') {
+        await users.updateOne({ _id: userId }, { $set: { adsgramIntent: { purpose, at: new Date() } }, $unset: { adsgramProof: '' } });
+    } else {
+        await users.updateOne({ _id: userId }, { $unset: { adsgramIntent: '' } });
+    }
+}
+// action: adIntent — the Daily "Watch ad" button calls this right before showing the Adsgram block ad.
+//  1) refuses early when the daily limit / 30s wait would make the ad unpayable (so the user never watches for nothing)
+//  2) clears a leftover mining intent (ad closed early) so a real Daily reward can never be swallowed as a mining proof.
+const s2sGapField = (net) => 'lastS2sAt_' + net;
+async function handleAdIntent(req, res, db, userId) {
+    const network = String((req.body && req.body.network) || 'adsgramSpecial');
+    const config = AD_NETWORK_REWARDS[network];
+    if (!config || !config.s2s) return res.status(400).json({ ok: false, error: 'invalid_network' });
+    const users = db.collection('users');
+    await ensureDailyReset(users, userId);
+    const field = COUNTER_FIELD[network], gapField = s2sGapField(network);
+    const u = await users.findOne({ _id: userId }, { projection: { isBanned: 1, accountLocked: 1, accountLockedReason: 1, [field]: 1, [gapField]: 1 } });
+    if (!u) return res.status(404).json({ ok: false, error: 'user_not_found' });
+    if (u.isBanned) return res.status(403).json({ ok: false, error: 'banned' });
+    if (u.accountLocked && u.accountLockedReason === 'bot_pattern') return res.status(403).json({ ok: false, error: 'account_locked' });
+    const count = u[field] || 0;
+    if (config.dailyLimit != null && count >= config.dailyLimit) return res.status(400).json({ ok: false, error: 'daily_limit_reached', countToday: count, dailyLimit: config.dailyLimit });
+    const wait = u[gapField] ? new Date(u[gapField]).getTime() + (config.s2sMinGapSeconds || 0) * 1000 - Date.now() : 0;
+    if (wait > 0) return res.status(400).json({ ok: false, error: 'ad_cooldown', retryAfterMs: wait });
+    if (network === 'adsgramSpecial') await setAdsgramIntent(users, userId, null);
+    return res.status(200).json({ ok: true, countToday: count, dailyLimit: config.dailyLimit, reward: config.reward });
+}
+// action: adStatus — read-only. The app polls it after an ad to see Adsgram's server confirmation (count goes up) and to draw the
+// "x / 5" counters + the 30s wait on the Daily cards.
+async function handleAdStatus(req, res, db, userId) {
+    const users = db.collection('users');
+    await ensureDailyReset(users, userId);
+    const proj = { wtcBalance: 1, lifetimeWtcEarned: 1 };
+    for (const n of Object.keys(AD_NETWORK_REWARDS)) { proj[COUNTER_FIELD[n]] = 1; proj[s2sGapField(n)] = 1; }
+    const u = await users.findOne({ _id: userId }, { projection: proj });
+    if (!u) return res.status(404).json({ ok: false, error: 'user_not_found' });
+    const nets = {};
+    for (const [n, c] of Object.entries(AD_NETWORK_REWARDS)) {
+        const last = u[s2sGapField(n)] ? new Date(u[s2sGapField(n)]).getTime() : 0;
+        nets[n] = { countToday: u[COUNTER_FIELD[n]] || 0, dailyLimit: c.dailyLimit, reward: c.reward, waitMs: Math.max(0, last + (c.s2sMinGapSeconds || 0) * 1000 - Date.now()) };
+    }
+    return res.status(200).json({ ok: true, nets, balance: u.wtcBalance || 0, lifetime: u.lifetimeWtcEarned || 0, serverNow: Date.now() });
+}
+
+// Verifies + consumes ONE proof for `net`/`purpose`. Returns { ok:true, restore } or { ok:false, pending:true } / { ok:false, error }.
+// `restore()` hands the proof back if the reward then could not be paid.
+async function consumeAdProof(db, userId, net, purpose, startedAtMs) {
+    const users = db.collection('users');
+    if (net === 'adsgramSpecial') {
+        const got = await users.findOneAndUpdate(
+            { _id: userId, 'adsgramProof.purpose': purpose, 'adsgramProof.at': { $gte: new Date(Date.now() - ADS_PROOF_WINDOW_MS) } },
+            { $unset: { adsgramProof: '' } },
+            { returnDocument: 'before' }
+        );
+        if (!got) return { ok: false, pending: true };
+        const old = got.adsgramProof;
+        return { ok: true, restore: () => users.updateOne({ _id: userId }, { $set: { adsgramProof: old } }) };
+    }
+    return { ok: false, error: 'invalid_network' };
+}
+
+// ── mineStart / mineClaim ── ⚠️ NEW (14 Oct 2026, admin) — Mining: 50 GM coin every 2 hours, one Adsgram Special ad.
+// ══ 17 Oct 2026 (admin) — MINING BOOST (AJKER DIN, BANGLADESH TIME ONUJAYI) ══
+// Niyom: AJKE (Bangladesh-er raat 12:00-er por theke ekhon porjonto) user-er link diye je friend-ra join korechhe, tader shonkha onujayi
+// mining-er prottek collect-e beshi GM coin. Boost-er meyad shesh hoy AJKE RAAT 12:00-e (BD time) — tarpor shonkha abar 0 theke shuru.
+//   Example: friend 2:00 PM-e join korle boost ~10 ghonta (raat 12-ta porjonto) cholbe; 7:00 PM-e join korle ~5 ghonta.
+// Tiers lib/constants.js MINING_BOOST_TIERS-e: 2+ friend → 60, 5+ → 80, 10+ → 120 (normal 50).
+// Kon friend gonay: ajke join + channel/community verify korechhe + ban/lock na + multi-account flag na (fake account thekate).
+// Eta SERVER-e hishab hoy (collect-er shomoy) — app shudhu dekhay, client kono reward pathay na, tai fake kora jay na.
+async function getMiningBoost(db, userId) {
+    // 6 Nov 2026 (admin): mining has ONE simple system: MINING_REWARD (50 GM coin) per collect, one collect every MINING_COOLDOWN_HOURS (2 hours). Nothing to buy.
+    return { reward: MINING_REWARD, base: MINING_REWARD, refReward: MINING_REWARD, boosted: false };
+}
+// mineInfo — read-only: the app calls it to draw the boost box + timer on the Mining card (no reward, no ad).
+async function handleMineInfo(req, res, db, userId) {
+    const boost = await getMiningBoost(db, userId);
+    return res.status(200).json({ ok: true, boost, serverNow: Date.now() });
+}
+async function handleMineStart(req, res, db, userId) {
+    const users = db.collection('users');
+    const u = await users.findOne({ _id: userId }, { projection: { lastMineAt: 1, isBanned: 1 } });
+    if (!u) return res.status(404).json({ ok: false, error: 'user_not_found' });
+    if (u.isBanned) return res.status(403).json({ ok: false, error: 'banned' });
+    if (u.lastMineAt) {
+        const wait = new Date(u.lastMineAt).getTime() + MINING_COOLDOWN_HOURS * 3600 * 1000 - Date.now();
+        if (wait > 0) return res.status(400).json({ ok: false, error: 'mining_not_ready', retryAfterMs: wait });
+    }
+    // 5 Nov 2026: one Adsgram ad per collect. The server picks the network and remembers WHY the ad is starting (adsgramIntent), so when
+    // Adsgram's server confirms the view (Reward URL) it is stored as a one-time mining proof that mineClaim consumes.
+    const network = MINING_AD_NETWORKS.length ? verifiedNets(MINING_AD_NETWORKS)[0] : null;
+    if (network === 'adsgramSpecial') await setAdsgramIntent(users, userId, 'mining');
+    const boost = await getMiningBoost(db, userId);
+    return res.status(200).json({ ok: true, network, adRequired: !!network, reward: boost.reward, boost });
+}
+// mineClaim - ONE call does everything (22 Oct 2026, saves Vercel free-plan usage: the old mineStart + mineInfo + profile calls are gone).
+// The 2-hour rule is enforced here, atomically: the update only matches when lastMineAt is missing or at least 2 hours old.
+async function handleMineClaim(req, res, db, userId) {
+    const users = db.collection('users');
+    const u = await users.findOne({ _id: userId }, { projection: { lastMineAt: 1, accountLocked: 1, accountLockedReason: 1 } });
+    if (!u) return res.status(404).json({ ok: false, error: 'user_not_found' });
+    if (u.accountLocked && u.accountLockedReason === 'bot_pattern') return res.status(403).json({ ok: false, error: 'account_locked' });
+
+    const cdMs = MINING_COOLDOWN_HOURS * 3600 * 1000;
+    const cooldownCutoff = new Date(Date.now() - cdMs);
+    if (u.lastMineAt && new Date(u.lastMineAt) > cooldownCutoff) {
+        return res.status(400).json({ ok: false, error: 'mining_not_ready', retryAfterMs: new Date(u.lastMineAt).getTime() + cdMs - Date.now() });
+    }
+
+    // 5 Nov 2026: the collect is paid only after Adsgram's server confirmed ONE ad view for mining (proof is single-use).
+    // 409 ad_pending = the confirmation has not arrived yet -> the app retries for a few seconds.
+    let proof = null;
+    if (MINING_AD_NETWORKS.length) {
+        proof = await consumeAdProof(db, userId, verifiedNets(MINING_AD_NETWORKS)[0], 'mining');
+        if (!proof.ok) return res.status(proof.pending ? 409 : 400).json({ ok: false, error: proof.pending ? 'ad_pending' : proof.error });
+    }
+
+    // reward = MINING_REWARD, the same for everyone (decided here on the server; the phone only displays it)
+    const reward = MINING_REWARD;
+
+    const gate = await users.findOneAndUpdate(
+        {
+            _id: userId, isBanned: { $ne: true },
+            $and: [
+                { $or: [{ lastMineAt: { $exists: false } }, { lastMineAt: { $lte: cooldownCutoff } }] },
+                REWARD_ELIGIBLE_FILTER,
+            ],
+        },
+        {
+            $inc: { wtcBalance: reward, lifetimeWtcEarned: reward, lifetimeMined: 1 },
+            $set: { lastMineAt: new Date(), lastMineReward: reward },
+        },
+        { returnDocument: 'after' }
+    );
+    const doc = gate && gate.value !== undefined ? gate.value : gate;
+    if (!doc) {
+        if (proof && proof.restore) await proof.restore().catch(() => {});   // not paid -> give the ad proof back, the ad is not wasted
+        const ex = await users.findOne({ _id: userId }, { projection: { isBanned: 1, multiAccountFlag: 1, channelVerified: 1 } });
+        if (ex?.isBanned) return res.status(403).json({ ok: false, error: 'banned' });
+        if (ex?.multiAccountFlag && !ex.channelVerified) return res.status(403).json({ ok: false, error: 'account_under_review' });
+        return res.status(400).json({ ok: false, error: 'mining_not_ready' });
+    }
+    // 20 Oct 2026 (admin): referral milestone 5 - the referrer gets a bonus when this user has collected Mining 2 times.
+    await maybeAwardReferralMilestones(db, userId, { lifetimeMined: doc.lifetimeMined });
+    return res.status(200).json({ ok: true, reward, balance: doc.wtcBalance, lifetime: doc.lifetimeWtcEarned, lastMineAt: doc.lastMineAt });
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GameVo Mine Pay channel task (2 Nov 2026, admin) - pinned at the top of Daily tasks.
+// First join pays TEAM_CHANNEL_REWARD ONCE (atomic flag teamChannelClaimed). Joining is also required to withdraw (handleWithdrawCreate).
+// The bot must be an ADMIN of the channel, otherwise Telegram cannot tell whether someone joined.
+// ═══════════════════════════════════════════════════════════════════════════
+async function handleTeamChannelClaim(req, res, db, userId) {
+    const users = db.collection('users');
+    const me = await users.findOne({ _id: userId }, { projection: { teamChannelClaimed: 1, isBanned: 1 } });
+    if (!me) return res.status(404).json({ ok: false, error: 'user_not_found' });
+    if (me.isBanned) return res.status(403).json({ ok: false, error: 'banned' });
+    if (me.teamChannelClaimed) return res.status(200).json({ ok: false, alreadyDone: true });
+    if (!(await isMember(userId, TEAM_CHANNEL))) return res.status(200).json({ ok: false, error: 'team_not_joined' });
+    const got = await users.findOneAndUpdate(
+        { _id: userId, teamChannelClaimed: { $ne: true }, isBanned: { $ne: true }, accountLocked: { $ne: true }, $and: [REWARD_ELIGIBLE_FILTER] },
+        { $inc: { wtcBalance: TEAM_CHANNEL_REWARD, lifetimeWtcEarned: TEAM_CHANNEL_REWARD }, $set: { teamChannelClaimed: true, teamChannelClaimedAt: new Date() } },
+        { returnDocument: 'after' }
+    );
+    const doc = got && got.value !== undefined ? got.value : got;
+    if (!doc) {
+        const ex = await users.findOne({ _id: userId }, { projection: { teamChannelClaimed: 1, accountLocked: 1 } });
+        if (ex?.teamChannelClaimed) return res.status(200).json({ ok: false, alreadyDone: true });
+        if (ex?.accountLocked) return res.status(403).json({ ok: false, error: 'account_locked' });
+        return res.status(403).json({ ok: false, error: 'account_under_review' });
+    }
+    return res.status(200).json({ ok: true, rewardWtc: TEAM_CHANNEL_REWARD, balance: doc.wtcBalance });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// WITHDRAW (23 Oct 2026, admin): ONLY to a Tonkeeper (TON) address. Minimum MIN_WITHDRAW_WTC, fee WITHDRAW_FEE_PERCENT (5%).
+// No other gates. The admin pays by hand and taps Paid / Reject on the Telegram message the bot sends (api/bot.js wdpay_ / wdrej_).
+// Safety: the balance is taken in ONE atomic update (so a double tap / two phones can never spend the same coin twice),
+// only ONE pending withdrawal per user, and a rejected request is refunded in full (fee included).
+// ═══════════════════════════════════════════════════════════════════════════
+const wdUnwrap = (r) => (r && r.value !== undefined ? r.value : r);
+function wdNumbers(amount) {
+    const fee = Math.ceil(amount * WITHDRAW_FEE_PERCENT / 100);
+    const net = amount - fee;
+    return { fee, net, netUsd: Math.round((net / WTC_PER_USD) * 10000) / 10000 };
+}
+async function handleWithdrawCreate(req, res, db, userId) {
+    const amount = Math.floor(Number(req.body && req.body.amount));
+    if (!Number.isFinite(amount) || amount < MIN_WITHDRAW_WTC) return res.status(400).json({ ok: false, error: 'below_minimum', min: MIN_WITHDRAW_WTC });
+    const address = cleanTonAddress(req.body && req.body.address);
+    if (!address) return res.status(400).json({ ok: false, error: 'invalid_address' });
+    const { fee, net, netUsd } = wdNumbers(amount);
+
+    // 2 Nov 2026 (admin): the GameVo Mine Pay channel must be joined (checked LIVE) - no join, no payment.
+    if (!(await isMember(userId, TEAM_CHANNEL))) return res.status(403).json({ ok: false, error: 'join_team_channel' });
+
+    const users = db.collection('users');
+    const got = wdUnwrap(await users.findOneAndUpdate(
+        { _id: userId, isBanned: { $ne: true }, accountLocked: { $ne: true }, pendingWithdraw: { $ne: true }, wtcBalance: { $gte: amount }, $and: [REWARD_ELIGIBLE_FILTER] },
+        { $inc: { wtcBalance: -amount }, $set: { pendingWithdraw: true, withdrawAddress: address } },
+        { returnDocument: 'after' }
+    ));
+    if (!got) {
+        const u = await users.findOne({ _id: userId }, { projection: { isBanned: 1, accountLocked: 1, pendingWithdraw: 1, wtcBalance: 1 } });
+        if (!u) return res.status(404).json({ ok: false, error: 'user_not_found' });
+        if (u.isBanned) return res.status(403).json({ ok: false, error: 'banned' });
+        if (u.accountLocked) return res.status(403).json({ ok: false, error: 'account_locked' });
+        if (u.pendingWithdraw) return res.status(409).json({ ok: false, error: 'pending_withdraw' });
+        if ((u.wtcBalance || 0) < amount) return res.status(400).json({ ok: false, error: 'insufficient_balance' });
+        return res.status(403).json({ ok: false, error: 'account_under_review' });
+    }
+
+    let id;
+    try {
+        const ins = await db.collection('withdrawals').insertOne({
+            userId, wtcAmount: amount, fee, netWtc: net, netUsd, feePercent: WITHDRAW_FEE_PERCENT,
+            method: 'ton', details: address, status: 'pending', createdAt: new Date(),
+        });
+        id = String(ins.insertedId);
+    } catch (e) {
+        console.error('withdraw insert failed, refunding:', e.message);
+        await users.updateOne({ _id: userId }, { $inc: { wtcBalance: amount }, $unset: { pendingWithdraw: '' } });
+        return res.status(500).json({ ok: false, error: 'server_error' });
+    }
+
+    // tell the admin (best effort - never blocks the user)
+    try {
+        const admin = process.env.ADMIN_TELEGRAM_ID;
+        if (admin) {
+            const who = got.telegramUsername ? '@' + got.telegramUsername : (got.firstName || userId);
+            await tgSend(admin,
+                `💸 <b>New Withdraw Request</b>\n\n👤 ${String(who).replace(/[<>&]/g, '')} (<code>${userId}</code>)\n` +
+                `💰 Amount: <b>${amount.toLocaleString()} GM</b>\n➖ Fee (${WITHDRAW_FEE_PERCENT}%): ${fee.toLocaleString()} GM\n` +
+                `✅ To pay: <b>${net.toLocaleString()} GM ≈ $${netUsd}</b>\n\n🏦 Tonkeeper (TON) address:\n<code>${address}</code>`,
+                { reply_markup: { inline_keyboard: [[{ text: '✅ Paid', callback_data: 'wdpay_' + id }, { text: '❌ Reject (refund)', callback_data: 'wdrej_' + id }]] } });
+        }
+    } catch (e) { console.error('withdraw admin notify failed:', e.message); }
+
+    return res.status(200).json({ ok: true, id, fee, net, netUsd, balance: got.wtcBalance });
+}
+// withdrawInfo - one call when the Withdraw window opens: saved address, pending flag, last requests.
+async function handleWithdrawInfo(req, res, db, userId) {
+    const u = await db.collection('users').findOne({ _id: userId }, { projection: { withdrawAddress: 1, pendingWithdraw: 1, wtcBalance: 1 } });
+    if (!u) return res.status(404).json({ ok: false, error: 'user_not_found' });
+    const page = Math.max(0, Math.min(200, parseInt(req.body && req.body.page) || 0)), PER = 5;
+    const found = await db.collection('withdrawals').find({ userId }).sort({ createdAt: -1 }).skip(page * PER).limit(PER + 1).toArray();
+    const rows = found.slice(0, PER);
+    return res.status(200).json({
+        ok: true, address: u.withdrawAddress || '', pending: !!u.pendingWithdraw, balance: u.wtcBalance || 0,
+        min: MIN_WITHDRAW_WTC, feePercent: WITHDRAW_FEE_PERCENT, page, hasMore: found.length > PER,
+        items: rows.map(w => ({ id: String(w._id), amount: w.wtcAmount, net: w.netWtc, netUsd: w.netUsd, status: w.status, at: w.createdAt })),
+    });
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GAME (7 Nov 2026, admin) — "Battle Defense". Tokens + ONE random reward per finished stage.
+//   gameInfo     read-only: how many tokens, when the next one arrives
+//   gameStart    needs >= 1 token (nothing is used yet) -> stamps a run
+//   gameAdStart  stage finished -> tells the server an Adsgram ad is about to play (same intent system as Mining)
+//   gameClaim    after the ad: ONE atomic update = pays 20-50 GM + uses 1 token + closes the run. Single use.
+// Tokens: max GAME_TOKEN_MAX, +1 every GAME_TOKEN_REGEN_HOURS. A missing field = a full bag (new users start with 3).
+// The countdown only runs while the bag is below the max; it starts the moment a token is used.
+// ═══════════════════════════════════════════════════════════════════════════
+const GAME_REGEN_MS = GAME_TOKEN_REGEN_HOURS * 3600 * 1000;
+function gameTokenState(u, now = Date.now()) {
+    let tokens = Number.isFinite(u && u.gameTokens) ? Math.min(GAME_TOKEN_MAX, Math.max(0, Math.floor(u.gameTokens))) : GAME_TOKEN_MAX;
+    let at = u && u.gameTokenAt ? new Date(u.gameTokenAt).getTime() : null;
+    if (tokens >= GAME_TOKEN_MAX) at = null;
+    else {
+        if (!Number.isFinite(at)) at = now;
+        const gained = Math.floor((now - at) / GAME_REGEN_MS);
+        if (gained > 0) { tokens = Math.min(GAME_TOKEN_MAX, tokens + gained); at = tokens >= GAME_TOKEN_MAX ? null : at + gained * GAME_REGEN_MS; }
+    }
+    return { tokens, at, nextAt: tokens < GAME_TOKEN_MAX ? at + GAME_REGEN_MS : null };
+}
+const gameInfoBody = (st) => ({ tokens: st.tokens, max: GAME_TOKEN_MAX, nextAt: st.nextAt, regenMs: GAME_REGEN_MS, rewardMin: GAME_REWARD_MIN, rewardMax: GAME_REWARD_MAX, serverNow: Date.now() });
+const GAME_USER_PROJ = { gameTokens: 1, gameTokenAt: 1, gameRun: 1, isBanned: 1, accountLocked: 1, accountLockedReason: 1 };
+function gameRunAge(u) {
+    if (!u || !u.gameRun || !u.gameRun.startedAt) return null;
+    const ms = Date.now() - new Date(u.gameRun.startedAt).getTime();
+    return ms > GAME_RUN_MAX_AGE_HOURS * 3600 * 1000 ? null : ms / 1000;
+}
+async function handleGameInfo(req, res, db, userId) {
+    const u = await db.collection('users').findOne({ _id: userId }, { projection: GAME_USER_PROJ });
+    if (!u) return res.status(404).json({ ok: false, error: 'user_not_found' });
+    return res.status(200).json({ ok: true, ...gameInfoBody(gameTokenState(u)) });
+}
+async function handleGameStart(req, res, db, userId) {
+    const users = db.collection('users');
+    const u = await users.findOne({ _id: userId }, { projection: GAME_USER_PROJ });
+    if (!u) return res.status(404).json({ ok: false, error: 'user_not_found' });
+    if (u.isBanned) return res.status(403).json({ ok: false, error: 'banned' });
+    if (u.accountLocked && u.accountLockedReason === 'bot_pattern') return res.status(403).json({ ok: false, error: 'account_locked' });
+    const st = gameTokenState(u);
+    if (st.tokens < 1) return res.status(400).json({ ok: false, error: 'no_token', ...gameInfoBody(st) });
+    await users.updateOne({ _id: userId }, { $set: { gameRun: { nonce: crypto.randomBytes(8).toString('hex'), startedAt: new Date() } } });
+    return res.status(200).json({ ok: true, ...gameInfoBody(st) });
+}
+async function handleGameAdStart(req, res, db, userId) {
+    const users = db.collection('users');
+    const u = await users.findOne({ _id: userId }, { projection: GAME_USER_PROJ });
+    if (!u) return res.status(404).json({ ok: false, error: 'user_not_found' });
+    if (u.isBanned) return res.status(403).json({ ok: false, error: 'banned' });
+    const age = gameRunAge(u);
+    if (age === null) return res.status(400).json({ ok: false, error: 'no_active_run' });
+    if (age < GAME_MIN_RUN_SECONDS) return res.status(400).json({ ok: false, error: 'run_too_short' });
+    if (gameTokenState(u).tokens < 1) return res.status(400).json({ ok: false, error: 'no_token' });
+    await setAdsgramIntent(users, userId, 'game');
+    return res.status(200).json({ ok: true });
+}
+async function handleGameClaim(req, res, db, userId) {
+    const users = db.collection('users');
+    const u = await users.findOne({ _id: userId }, { projection: GAME_USER_PROJ });
+    if (!u) return res.status(404).json({ ok: false, error: 'user_not_found' });
+    if (u.isBanned) return res.status(403).json({ ok: false, error: 'banned' });
+    if (u.accountLocked && u.accountLockedReason === 'bot_pattern') return res.status(403).json({ ok: false, error: 'account_locked' });
+    const age = gameRunAge(u);
+    if (age === null) return res.status(400).json({ ok: false, error: 'no_active_run' });
+    if (age < GAME_MIN_RUN_SECONDS) return res.status(400).json({ ok: false, error: 'run_too_short' });
+    const now = Date.now();
+    const st = gameTokenState(u, now);
+    if (st.tokens < 1) return res.status(400).json({ ok: false, error: 'no_token', ...gameInfoBody(st) });
+
+    // the reward is paid only after Adsgram's own server confirmed ONE ad view for this game (single-use proof). 409 ad_pending = not arrived yet.
+    const proof = await consumeAdProof(db, userId, 'adsgramSpecial', 'game');
+    if (!proof.ok) return res.status(proof.pending ? 409 : 400).json({ ok: false, error: proof.pending ? 'ad_pending' : proof.error });
+
+    const reward = crypto.randomInt(GAME_REWARD_MIN, GAME_REWARD_MAX + 1);
+    const newTokens = st.tokens - 1;
+    const newAt = st.tokens >= GAME_TOKEN_MAX ? now : st.at;      // a full bag starts its 6 h countdown now; otherwise the running countdown goes on
+    const got = await users.findOneAndUpdate(
+        {
+            _id: userId, isBanned: { $ne: true }, 'gameRun.nonce': u.gameRun.nonce,
+            gameTokens: u.gameTokens ?? null, gameTokenAt: u.gameTokenAt ?? null,      // nothing changed since we read it (double tap / two phones)
+            $and: [REWARD_ELIGIBLE_FILTER],
+        },
+        {
+            $inc: { wtcBalance: reward, lifetimeWtcEarned: reward, gameStagesWon: 1 },
+            $set: { gameTokens: newTokens, gameTokenAt: new Date(newAt), lastGameRewardAt: new Date(now) },
+            $unset: { gameRun: '' },
+        },
+        { returnDocument: 'after' }
+    );
+    const doc = got && got.value !== undefined ? got.value : got;
+    if (!doc) {
+        await proof.restore().catch(() => {});      // not paid -> give the ad proof back
+        const ex = await users.findOne({ _id: userId }, { projection: { isBanned: 1, multiAccountFlag: 1, channelVerified: 1 } });
+        if (ex?.isBanned) return res.status(403).json({ ok: false, error: 'banned' });
+        if (ex?.multiAccountFlag && !ex.channelVerified) return res.status(403).json({ ok: false, error: 'account_under_review' });
+        return res.status(409).json({ ok: false, error: 'try_again' });
+    }
+    return res.status(200).json({ ok: true, reward, balance: doc.wtcBalance || 0, lifetime: doc.lifetimeWtcEarned || 0, ...gameInfoBody(gameTokenState(doc, now)) });
+}
+
+// 17 Oct 2026 (admin): SPIN WHEEL REMOVED — spinStart / spin handlers, spin logs, bot alerts and bonus spins no longer exist.
+
+// ── taskComplete ── ⚠️ NOW GATED (STEP 2 only — see comment below on why STEP 1's slot-claim stays ungated)
+// previously the task.limit check used a plain read
+// (`task.completionCount >= task.limit`), and completionCount was incremented
+// separately with an unconditional updateOne — leaving a race window between
+// the two. If many users completed the same limited task at almost the exact
+// same moment, they could all see "not full yet" and pass, letting
+// completionCount overshoot the task's limit (low severity, but a real bug).
+// Now claiming the task's "slot" is also atomic — the check+increment of the
+// task's own completionCount+limit condition happens in the same
+// findOneAndUpdate, and if crediting the user's record fails afterward (e.g.
+// a double-click race, OR the new multi-account review gate), the slot is
+// rolled back.
+// ── taskStart ── ⚠️ NEW (security fix) — issues a short-lived signed token
+// the instant the user taps "Start" on a task (before they even leave the
+// app for the link). Mirrors adStart exactly. Not required
+// for 'channel' tasks — those are independently verified via real Telegram
+// membership, which is already proof enough on its own.
+async function handleTaskStart(req, res, db, userId) {
+    const { taskId } = req.body;
+    if (!taskId) return res.status(400).json({ ok: false, error: 'missing_fields' });
+    if (!SECRET) return res.status(500).json({ ok: false, error: 'server_misconfigured' });
+    const startTime = Date.now();
+    return res.status(200).json({ ok: true, startTime, signature: signTaskStart(userId, taskId, startTime) });
+}
+
+// ── taskComplete ── ⚠️ NOW GATED (STEP 2 only — see comment below on why STEP 1's slot-claim stays ungated)
+// previously the task.limit check used a plain read
+// (`task.completionCount >= task.limit`), and completionCount was incremented
+// separately with an unconditional updateOne — leaving a race window between
+// the two. If many users completed the same limited task at almost the exact
+// same moment, they could all see "not full yet" and pass, letting
+// completionCount overshoot the task's limit (low severity, but a real bug).
+// Now claiming the task's "slot" is also atomic — the check+increment of the
+// task's own completionCount+limit condition happens in the same
+// findOneAndUpdate, and if crediting the user's record fails afterward (e.g.
+// a double-click race, OR the new multi-account review gate), the slot is
+// rolled back.
+//
+// for every category EXCEPT 'channel', this
+// used to credit the full reward the instant taskComplete was called, with
+// ZERO proof the user ever opened the link/article/faucet — the frontend's
+// 10-second "Claim in 10s..." countdown was pure UI, never enforced
+// server-side. A script with a valid initData could loop every open taskId
+// and instant-claim the full reward for each one, never visiting anything.
+// Now (mirroring the ad pattern) these categories require a signed
+// taskStart token issued when the task sheet opens, and taskComplete
+// verifies: (1) the signature is genuine and matches this exact taskId, (2)
+// at least TASK_MIN_WAIT_SECONDS has passed since it was issued, (3) the
+// token hasn't been spent already (usedTaskStarts, atomic, single-use). This
+// doesn't prove the link was actually read — no server-side check can fully
+// prove that for an external site — but it closes the "claim every task in
+// under a second via direct API calls" hole, which is the actual exploit.
+// 'channel' tasks are unaffected — Telegram membership is real proof and
+// doesn't need this.
+async function handleTaskComplete(req, res, db, userId) {
+    const { taskId, startTime, signature } = req.body;
+    if (!taskId) return res.status(400).json({ ok: false, error: 'missing_fields' });
+
+    const users = db.collection('users');
+    const tasks = db.collection('tasks');
+    await ensureDailyReset(users, userId);
+
+    const user = await users.findOne({ _id: userId });
+    if (!user) return res.status(404).json({ ok: false, error: 'user_not_found' });
+    if (user.isBanned) return res.status(403).json({ ok: false, error: 'banned' });
+    if ((user.completedTasks || []).includes(taskId)) return res.status(200).json({ ok: false, alreadyDone: true });
+
+    let taskObjId;
+    try { taskObjId = new ObjectId(taskId); } catch { return res.status(400).json({ ok: false, error: 'invalid_task_id' }); }
+
+    const task = await tasks.findOne({ _id: taskObjId });
+    if (!task || !task.isApproved) return res.status(404).json({ ok: false, error: 'task_not_found' });
+
+    let taskStartKey = null;
+    // API-verified join tasks are no longer tied
+    // to the 'channel' category only. Any category can now be marked
+    // verifyType: 'api' from the admin panel (see api/bot.js task_verify_api).
+    // Old tasks created before this field existed still work — they fall
+    // back to the category check.
+    const isApiVerified = task.verifyType === 'api' || (!task.verifyType && task.category === 'channel');
+    if (isApiVerified) {
+        const member = await isMember(userId, task.channelId);
+        if (!member) return res.status(200).json({ ok: false, error: 'not_member' });
+    } else {
+        // ── non-channel categories now require a valid taskStart token ──
+        if (!startTime || !signature) return res.status(400).json({ ok: false, error: 'missing_task_token' });
+        if (signTaskStart(userId, taskId, startTime) !== signature) {
+            return res.status(400).json({ ok: false, error: 'invalid_task_token' });
+        }
+        const elapsedSeconds = (Date.now() - Number(startTime)) / 1000;
+        if (isNaN(elapsedSeconds) || elapsedSeconds < 0) {
+            return res.status(400).json({ ok: false, error: 'invalid_task_token' });
+        }
+        if (elapsedSeconds < TASK_MIN_WAIT_SECONDS) {
+            return res.status(400).json({ ok: false, error: 'claimed_too_fast' });
+        }
+        if (elapsedSeconds > 300) {
+            return res.status(400).json({ ok: false, error: 'task_token_expired' });
+        }
+        if ((user.usedTaskStarts || []).includes(`${taskId}:${startTime}`)) {
+            return res.status(400).json({ ok: false, error: 'task_token_already_used' });
+        }
+        // cross-task cooldown (see TASK_COOLDOWN_SECONDS in
+        // lib/constants.js). A quick pre-check here just for a clean, fast
+        // rejection before wasting a task "slot" claim below — the REAL
+        // enforcement (closing the race window) is the atomic filter on
+        // lastTaskClaimAt in the STEP 2 update further down.
+        if (user.lastTaskClaimAt && new Date(user.lastTaskClaimAt).getTime() > Date.now() - TASK_COOLDOWN_SECONDS * 1000) {
+            return res.status(400).json({
+                ok: false, error: 'task_cooldown',
+                retryAfterMs: new Date(user.lastTaskClaimAt).getTime() + TASK_COOLDOWN_SECONDS * 1000 - Date.now(),
+            });
+        }
+        taskStartKey = `${taskId}:${startTime}`;
+    }
+
+    // ── STEP 1: atomically claim the task's "slot" (limit check + increment together) ──
+    // ⚠️ Intentionally NOT gated by REWARD_ELIGIBLE_FILTER — this is a shared,
+    // limited-quota resource across ALL users, not this user's own reward. A
+    // flagged user's failed claim below correctly gives this slot back (see
+    // STEP 2), so legit users' quota is never actually consumed by them.
+    const taskGate = await tasks.findOneAndUpdate(
+        { _id: taskObjId, $or: [{ limit: { $lte: 0 } }, { limit: { $exists: false } }, { $expr: { $lt: ['$completionCount', '$limit'] } }] },
+        { $inc: { completionCount: 1 } },
+        { returnDocument: 'after' }
+    );
+    if (!taskGate) return res.status(400).json({ ok: false, error: 'task_full' });
+
+    const rewardWtc = task.rewardWtc || task.rewardGold || task.rewardPoints || 10; // default fallback if admin left it blank
+
+    // ── STEP 2: atomically credit the user (a double-claim by the same user is caught right here) ──
+    // also requires REWARD_ELIGIBLE_FILTER, and (for non-channel
+    // categories) the taskStart token is atomically marked spent in the same
+    // update that credits the reward — same single-use pattern as
+    // usedAdStarts.
+    const gate = await users.findOneAndUpdate(
+        {
+            _id: userId,
+            completedTasks: { $ne: taskId },
+            ...(taskStartKey ? {
+                usedTaskStarts: { $ne: taskStartKey },
+                // atomic re-check of the cooldown pre-check above, closing
+                // the race window (e.g. two rapid double-taps landing near the
+                // boundary, or two different tasks' claims arriving milliseconds
+                // apart). Only applies to non-channel tasks (taskStartKey set).
+            } : {}),
+            // same duplicate-`$or` problem as the ad claim above: the task
+            // cooldown re-check was overwritten by REWARD_ELIGIBLE_FILTER's `$or`.
+            $and: [
+                ...(taskStartKey ? [{ $or: [{ lastTaskClaimAt: { $exists: false } }, { lastTaskClaimAt: { $lte: new Date(Date.now() - TASK_COOLDOWN_SECONDS * 1000) } }] }] : []),
+                REWARD_ELIGIBLE_FILTER,
+            ],
+        },
+        {
+            $inc: { wtcBalance: rewardWtc, lifetimeWtcEarned: rewardWtc, tasksCompletedToday: 1, },
+            
+            $addToSet: taskStartKey ? { completedTasks: taskId, usedTaskStarts: taskStartKey } : { completedTasks: taskId },
+            // only stamped for non-channel tasks; channel/api-verified
+            // tasks aren't subject to the cooldown so there's no need to track it
+            // for them (and no reason to make an unrelated 'channel' claim wait on
+            // an earlier non-channel task's timer, or vice versa).
+            ...(taskStartKey ? { $set: { lastTaskClaimAt: new Date() } } : {}),
+        },
+        { returnDocument: 'after' }
+    );
+    if (!gate) {
+        // Crediting the user failed (e.g. already done in a race, OR blocked by
+        // the multi-account review gate) — give the task's slot back either way.
+        await tasks.updateOne({ _id: taskObjId }, { $inc: { completionCount: -1 } });
+        const exists = await users.findOne({ _id: userId }, { projection: { completedTasks: 1, multiAccountFlag: 1, channelVerified: 1, usedTaskStarts: 1, lastTaskClaimAt: 1 } });
+        if (taskStartKey && (exists?.usedTaskStarts || []).includes(taskStartKey)) {
+            return res.status(400).json({ ok: false, error: 'task_token_already_used' });
+        }
+        // surface the cooldown specifically (instead of falling through
+        // to the generic alreadyDone below) if that's what actually blocked it.
+        if (taskStartKey && exists?.lastTaskClaimAt && new Date(exists.lastTaskClaimAt).getTime() > Date.now() - TASK_COOLDOWN_SECONDS * 1000) {
+            return res.status(400).json({
+                ok: false, error: 'task_cooldown',
+                retryAfterMs: new Date(exists.lastTaskClaimAt).getTime() + TASK_COOLDOWN_SECONDS * 1000 - Date.now(),
+            });
+        }
+        if (exists?.multiAccountFlag && !exists.channelVerified && !(exists.completedTasks || []).includes(taskId)) {
+            return res.status(403).json({ ok: false, error: 'account_under_review' });
+        }
+        return res.status(200).json({ ok: false, alreadyDone: true });
+    }
+
+    await maybeAwardReferralMilestones(db, userId, { completedTasksCount: gate.completedTasks.length });
+
+    // user-created tasks (see api/payments.js (resource:'taskcreate')) auto-delete
+    // USER_TASK_COMPLETED_TTL_DAYS after they hit their completion limit
+    // (TTL index in models/schema.js). Only fires for isUserCreated:true
+    // tasks — an admin-set limit on a normal task is never auto-deleted
+    // this way. Placed AFTER the reward-credit gate above succeeds (not
+    // right after taskGate) so a completion that gets rolled back (STEP 2
+    // failing, slot given back at line ~597) never wrongly marks the task
+    // "completed" while its real completionCount is actually back below limit.
+    if (taskGate.isUserCreated && taskGate.limit > 0 && taskGate.completionCount >= taskGate.limit) {
+        tasks.updateOne({ _id: taskObjId, completedAt: { $exists: false } }, { $set: { completedAt: new Date() } }).catch(() => {});
+    }
+
+    return res.status(200).json({ ok: true, rewardWtc });
+}
+
+// 16 Oct 2026 — promo codes copied from the channel / broadcast carry invisible characters (see obscureCode() in api/bot.js),
+// which made a correctly copied code fail with "Invalid code". Strip every invisible char + space before matching,
+// so both typed and pasted codes work.
+function cleanPromoCode(code) {
+    return String(code).replace(/[\u200B-\u200F\u2060-\u2064\u00AD\uFEFF\s]/g, '');
+}
+
+// ── checkPromo ── ⚠️ NEW — read-only pre-validation, called BEFORE the ad
+// is shown (see redeemPromoCode() in index.html). Previously the ad played
+// unconditionally, so an invalid/expired/already-used code still cost the
+// user a full ad watch before they found out it failed. This mirrors every
+// validation in handleClaimPromo below EXCEPT it never mutates the promo
+// doc — the real, atomic redemption still happens in claimPromo after the
+// ad, so a code that becomes invalid in the few seconds between the two
+// calls (a genuine race, not a UX annoyance) is still safely caught there.
+// 17 Oct 2026 — wrong-code guessing limit. A script trying random codes gets blocked after PROMO_FAIL_LIMIT misses in
+// PROMO_FAIL_WINDOW_MS. Counter lives in users.promoFails = { n, at }. A correct code never touches it.
+async function promoBlocked(users, userId) {
+    const u = await users.findOne({ _id: userId }, { projection: { promoFails: 1 } });
+    const f = u?.promoFails;
+    return !!(f && f.n >= PROMO_FAIL_LIMIT && Date.now() - f.at < PROMO_FAIL_WINDOW_MS);
+}
+async function promoFailed(users, userId) {
+    const u = await users.findOne({ _id: userId }, { projection: { promoFails: 1 } });
+    const f = u?.promoFails;
+    const fresh = f && Date.now() - f.at < PROMO_FAIL_WINDOW_MS;
+    await users.updateOne({ _id: userId }, { $set: { promoFails: { n: fresh ? f.n + 1 : 1, at: fresh ? f.at : Date.now() } } });
+}
+async function handleCheckPromo(req, res, db, userId) {
+    const { code } = req.body;
+    if (!code) return res.status(400).json({ ok: false, error: 'missing_fields' });
+    if (await promoBlocked(db.collection('users'), userId)) return res.status(429).json({ ok: false, error: 'too_many_attempts' });
+
+    const promos = db.collection('promos');
+    const promo = await promos.findOne({ code: cleanPromoCode(code) });
+    if (!promo) { await promoFailed(db.collection('users'), userId); return res.status(404).json({ ok: false, error: 'invalid_code' }); }
+    if (promo.expiresAt && new Date(promo.expiresAt) < new Date()) return res.status(400).json({ ok: false, error: 'expired' });
+    if ((promo.redeemedBy || []).includes(userId)) return res.status(400).json({ ok: false, error: 'already_used' });
+    const maxUses = promo.maxUses || 9999;
+    if ((promo.usedCount || 0) >= maxUses) return res.status(400).json({ ok: false, error: 'fully_used' });
+
+    const users = db.collection('users');
+    const user = await users.findOne({ _id: userId });
+    if (!user) return res.status(404).json({ ok: false, error: 'user_not_found' });
+    if (user.isBanned) return res.status(403).json({ ok: false, error: 'banned' });
+
+    return res.status(200).json({ ok: true });
+}
+
+// ── claimPromo ── ⚠️ NOW GATED
+async function handleClaimPromo(req, res, db, userId) {
+    const { code } = req.body;
+    if (!code) return res.status(400).json({ ok: false, error: 'missing_fields' });
+
+    const promos = db.collection('promos');
+    const users = db.collection('users');
+
+    if (await promoBlocked(users, userId)) return res.status(429).json({ ok: false, error: 'too_many_attempts' }); // 17 Oct 2026 — brute-force guard
+    const promo = await promos.findOne({ code: cleanPromoCode(code) });
+    if (!promo) { await promoFailed(users, userId); return res.status(404).json({ ok: false, error: 'invalid_code' }); }
+    if (promo.expiresAt && new Date(promo.expiresAt) < new Date()) return res.status(400).json({ ok: false, error: 'expired' });
+
+    const user = await users.findOne({ _id: userId });
+    if (!user) return res.status(404).json({ ok: false, error: 'user_not_found' });
+    if (user.isBanned) return res.status(403).json({ ok: false, error: 'banned' });
+
+    const maxUses = promo.maxUses || 9999;
+    const promoGate = await promos.findOneAndUpdate(
+        { _id: promo._id, usedCount: { $lt: maxUses }, redeemedBy: { $ne: userId } },
+        { $inc: { usedCount: 1 }, $addToSet: { redeemedBy: userId } },
+        { returnDocument: 'after' }
+    );
+    if (!promoGate) {
+        const fresh = await promos.findOne({ _id: promo._id });
+        if ((fresh.redeemedBy || []).includes(userId)) return res.status(400).json({ ok: false, error: 'already_used' });
+        return res.status(400).json({ ok: false, error: 'fully_used' });
+    }
+
+    // 15 Oct 2026 — if this promo was auto-posted to the official channel and EVERY code of that post is now used up,
+    // edit the post to "all claimed" (creates urgency, stops people trying dead codes). Best-effort, never blocks the claim.
+    if (promoGate.channelMsgId && (promoGate.usedCount || 0) >= maxUses) {
+        try {
+            const left = await promos.countDocuments({ channelMsgId: promoGate.channelMsgId, $expr: { $lt: ['$usedCount', '$maxUses'] } });
+            if (left === 0) {
+                const doneText = '🎁 <b>Promo Code — ALL CLAIMED ✅</b>\n\n⚡ Too slow this time! Every code was redeemed.\nStay in the channel — the next code is coming soon.';
+                const kb = { reply_markup: { inline_keyboard: [[{ text: '🚀 Open GameVo Mine', url: 'https://t.me/GameVo_mine_bot/OpenPlay' }]] } };
+                if (promoGate.channelPostIsPhoto) await tgEditCaption(OFFICIAL_CHANNEL, promoGate.channelMsgId, doneText, kb);
+                else await tgEdit(OFFICIAL_CHANNEL, promoGate.channelMsgId, doneText, kb);
+            }
+        } catch (e) { console.error('promo channel edit failed:', e.message); }
+    }
+
+    // the promo code itself is already marked used above (promoGate)
+    // even if the credit below is blocked by REWARD_ELIGIBLE_FILTER —
+    // otherwise a flagged user could keep retrying the same code after
+    // verifying, defeating the code's single-use-per-user limit. Trade-off:
+    // a flagged user "burns" a promo code with zero reward if they redeem it
+    // while still unverified. Accepted, since promo codes are typically
+    // low-value and this closes an easy retry-abuse path.
+    const reward = promo.reward || 0;
+    const creditResult = await users.updateOne(
+        { _id: userId, ...REWARD_ELIGIBLE_FILTER },
+        { $inc: { wtcBalance: reward, lifetimeWtcEarned: reward, }, }
+    );
+    if (creditResult.matchedCount === 0) {
+        return res.status(403).json({ ok: false, error: 'account_under_review' });
+    }
+
+    return res.status(200).json({ ok: true, reward });
+}
+
+// ⚠️ REMOVED (this update) — Monetag S2S postback system
+// (handleMonetagPostback + the `?pb=monetag` GET route). Admin decision:
+// reverted back to the ordinary signed-token + timer flow every other
+// network uses (see AD_NETWORK_REWARDS in lib/constants.js — monetag and
+// monetagPopup now both have a plain `minWatchSeconds: 6`). No more
+// MONETAG_POSTBACK_SECRET, no more `monetagProcessedYmids` collection, no
+// more per-user ymid generation in index.html.
+
+// ══════════════════════════════════════════════════════════════
+// 🔒 ADSGRAM S2S (server-to-server reward confirmation)
+// Adsgram's OWN server calls:
+//   GET /api/earn?s2s=adsgram&net=<adsgramSpecial|adsgramTask>&userid=[userId]&token=<ADSGRAM_S2S_SECRET>
+// after the user really earned the reward (set as the "Reward URL" of each Adsgram block).
+// The reward is credited HERE, so nothing the phone sends can mint GM coin for these networks.
+// Always answers 200 once the token is valid (even if nothing was paid) so Adsgram never retries
+// a request that was deliberately refused (limit reached, banned, too fast...).
+// ══════════════════════════════════════════════════════════════
+function safeEqualStr(a, b) {
+    const x = Buffer.from(String(a)), y = Buffer.from(String(b));
+    return x.length === y.length && crypto.timingSafeEqual(x, y);
+}
+async function handleAdsgramS2S(req, res) {
+    const S2S_SECRET = process.env.ADSGRAM_S2S_SECRET;
+    if (!S2S_SECRET) return res.status(500).json({ ok: false, error: 'server_misconfigured' });
+    const q = req.query || {};
+    if (!safeEqualStr(q.token || '', S2S_SECRET)) return res.status(403).json({ ok: false, error: 'forbidden' });
+
+    const network = String(q.net || '');
+    const config = AD_NETWORK_REWARDS[network];
+    if (!config || !config.s2s) return res.status(400).json({ ok: false, error: 'invalid_network' });
+    const userId = String(q.userid || '').trim();
+    if (!/^\d{1,15}$/.test(userId)) return res.status(400).json({ ok: false, error: 'invalid_user' });
+
+    const { db } = await connectToDatabase();
+    const users = db.collection('users');
+    const field = COUNTER_FIELD[network];
+    await ensureDailyReset(users, userId);
+
+    const lock = await users.findOne({ _id: userId }, { projection: { accountLocked: 1, accountLockedReason: 1 } });
+    if (lock?.accountLocked && lock.accountLockedReason === 'bot_pattern') return res.status(200).json({ ok: false, error: 'account_locked' });
+
+    // 14 Oct 2026 — Spin Wheel + Mining also play an Adsgram Special ad. Adsgram calls this same Reward URL for
+    // EVERY view of that block, so the server must know WHY the ad was started. spinStart/mineStart (and adIntent for the
+    // normal Earn button) record `adsgramIntent`. If the intent is spin/mining and fresh, this callback is stored as a
+    // one-time PROOF (adsgramProof) that handleSpin/handleMineClaim consume — NO GM coin is paid here (it would double-pay).
+    if (network === 'adsgramSpecial') {
+        const proofHit = await users.findOneAndUpdate(
+            { _id: userId, 'adsgramIntent.purpose': { $in: ['mining', 'game'] }, 'adsgramIntent.at': { $gte: new Date(Date.now() - ADS_PROOF_WINDOW_MS) } },
+            [{ $set: { adsgramProof: { purpose: '$adsgramIntent.purpose', at: '$$NOW' } } }, { $unset: 'adsgramIntent' }],
+            { returnDocument: 'after' }
+        );
+        if (proofHit) return res.status(200).json({ ok: true, proof: proofHit.adsgramProof?.purpose || true });
+    }
+
+    const limited = config.dailyLimit != null;
+    const gapField = 'lastS2sAt_' + network;
+    const and = [REWARD_ELIGIBLE_FILTER];
+    if (limited) and.push({ $or: [{ [field]: { $exists: false } }, { [field]: { $lt: config.dailyLimit } }] });
+    if (config.s2sMinGapSeconds) {
+        const cutoff = new Date(Date.now() - config.s2sMinGapSeconds * 1000);
+        and.push({ $or: [{ [gapField]: { $exists: false } }, { [gapField]: { $lte: cutoff } }] }); // swallows an immediate duplicate callback
+    }
+    const inc = { wtcBalance: config.reward, lifetimeWtcEarned: config.reward, [field]: 1, };
+    const set = { [gapField]: new Date() };
+    if (config.countsAsAd) { inc.lifetimeAdsWatched = 1; inc.adsWatchedToday = 1; set.lastAdClaimAt = new Date(); }
+
+    const gate = await users.findOneAndUpdate(
+        { _id: userId, isBanned: { $ne: true }, $and: and },
+        { $inc: inc, $set: set },
+        { returnDocument: 'after' }
+    );
+    if (!gate) {
+        const ex = await users.findOne({ _id: userId }, { projection: { isBanned: 1, multiAccountFlag: 1, channelVerified: 1 } });
+        if (!ex) return res.status(200).json({ ok: false, error: 'user_not_found' });
+        if (ex.isBanned) return res.status(200).json({ ok: false, error: 'banned' });
+        if (ex.multiAccountFlag && !ex.channelVerified) return res.status(200).json({ ok: false, error: 'account_under_review' });
+        return res.status(200).json({ ok: false, error: limited ? 'daily_limit_reached_or_duplicate' : 'duplicate' });
+    }
+    if (config.countsAsAd) await maybeAwardReferralMilestones(db, userId, { lifetimeAdsWatched: gate.lifetimeAdsWatched });
+    return res.status(200).json({ ok: true, reward: config.reward, countToday: gate[field] });
+}
+
+export default async function handler(req, res) {
+    // Adsgram's server calls us with GET (no Telegram session) — handled before the POST-only / initData gate.
+    // Reward URL (set in the Adsgram dashboard for each block):  /api/earn?s2s=adsgram&net=<adsgramSpecial|adsgramTask>&userid=[userId]&token=<ADSGRAM_S2S_SECRET>
+    if (req.method === 'GET' && req.query && req.query.s2s === 'adsgram') return handleAdsgramS2S(req, res);
+    if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'method_not_allowed' });
+
+    const { action } = req.body || {};
+
+    // All actions require a valid Telegram session
+    const verified = verifyTelegramInitData(req.body?.initData);
+    if (!verified.ok) return res.status(401).json({ ok: false, error: 'unauthorized', reason: verified.error });
+    const userId = String(verified.user.id);
+
+    // 22 Oct 2026: anti-script speed limit - more than 20 requests in 10 seconds from one account is not a human.
+    if (rateLimited('earn:' + userId, 20, 10000)) return res.status(429).json({ ok: false, error: 'too_fast' });
+
+    const { db } = await connectToDatabase();
+
+    switch (action) {
+        case 'adStart':        return handleAdStart(req, res, db, userId);
+        case 'claimAdReward':  return handleClaimAdReward(req, res, db, userId);
+        case 'adIntent':        return handleAdIntent(req, res, db, userId);
+        case 'adStatus':        return handleAdStatus(req, res, db, userId);
+        case 'mineStart':       return handleMineStart(req, res, db, userId);
+        case 'gameInfo':        return handleGameInfo(req, res, db, userId);
+        case 'gameStart':       return handleGameStart(req, res, db, userId);
+        case 'gameAdStart':     return handleGameAdStart(req, res, db, userId);
+        case 'gameClaim':       return handleGameClaim(req, res, db, userId);
+        case 'mineClaim':       return handleMineClaim(req, res, db, userId);
+        case 'mineInfo':        return handleMineInfo(req, res, db, userId);
+        case 'teamChannelClaim': return handleTeamChannelClaim(req, res, db, userId);
+        case 'withdrawCreate':  return handleWithdrawCreate(req, res, db, userId);
+        case 'withdrawInfo':    return handleWithdrawInfo(req, res, db, userId);
+        case 'taskStart':       return handleTaskStart(req, res, db, userId);
+        case 'taskComplete':   return handleTaskComplete(req, res, db, userId);
+        case 'checkPromo':      return handleCheckPromo(req, res, db, userId);
+        case 'claimPromo':     return handleClaimPromo(req, res, db, userId);
+        default: return res.status(400).json({ ok: false, error: 'unknown_action' });
+    }
+}
