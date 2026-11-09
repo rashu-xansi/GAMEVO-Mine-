@@ -11,6 +11,15 @@
             ]
         },
         {
+            "source": "/game.html",
+            "headers": [
+                {
+                    "key": "Cache-Control",
+                    "value": "no-cache, must-revalidate"
+                }
+            ]
+        },
+        {
             "source": "/i18n.js",
             "headers": [
                 {
@@ -51,6 +60,18 @@
                 {
                     "key": "Permissions-Policy",
                     "value": "camera=(), microphone=(), geolocation=()"
+                },
+                {
+                    "key": "Strict-Transport-Security",
+                    "value": "max-age=63072000; includeSubDomains"
+                },
+                {
+                    "key": "Content-Security-Policy",
+                    "value": "frame-ancestors 'self' https://web.telegram.org https://webk.telegram.org https://webz.telegram.org https://*.telegram.org; object-src 'none'; base-uri 'self'"
+                },
+                {
+                    "key": "Cross-Origin-Opener-Policy",
+                    "value": "same-origin-allow-popups"
                 }
             ]
         }
