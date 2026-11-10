@@ -1,99 +1,84 @@
-// api/admin/setup-indexes.js — NEW
+// lib/indexes.js — ONE list of every database index + TTL (auto-delete) rule of this project (9 Nov 2026).
+// Used by BOTH `node models/schema.js` and the /api/admin/setup-indexes endpoint, so the two can never disagree again
+// (before: promos.expiresAt was 0s in one and 86400s in the other, so whichever ran second failed with IndexOptionsConflict).
 //
-// আপনার mobile-only setup এ `node models/schema.js` চালানোর কোনো উপায় নেই
-// (terminal/Node.js নেই)। তাই এই endpoint টা ঠিক একই index-creation কোড
-// চালায়, কিন্তু শুধু একটা browser এ URL খুলে GET request পাঠিয়েই ট্রিগার
-// করা যায়।
-//
-// ব্যবহার (deploy হওয়ার পর, মোবাইল Chrome এ):
-//   https://<your-vercel-domain>/api/admin/setup-indexes?secret=<your BOT_TOKEN>
-//
-// ⚠️ SECURITY: BOT_TOKEN ইতিমধ্যে আপনার Vercel env এ secret হিসেবে সেভ করা
-// আছে এবং কখনো ইউজারের কাছে পাঠানো হয় না — তাই এটাকেই এখানে shared-secret
-// হিসেবে reuse করা হচ্ছে, আলাদা কোনো নতুন env variable যোগ করার দরকার নেই।
-// ভুল/অনুপস্থিত secret দিলে 401 ফেরত আসবে, কিছু চলবে না।
-//
-// createIndex সবসময় idempotent — একই index বারবার বানাতে চাইলেও দ্বিতীয়
-// বার থেকে MongoDB চুপচাপ কিছু করে না (already exists), তাই এই endpoint
-// বারবার visit করলেও কোনো ক্ষতি নেই — safe to re-run anytime after future
-// schema changes too.
+// ensureIndexes() is safe to run again and again:
+//   • index missing                       -> created
+//   • index exists with a different TTL   -> TTL changed in place (collMod), no downtime, no data loss
+//   • index exists with other differences -> dropped and re-created
+const D = 86400;
+export const INDEX_SPECS = [
+    // ── users ──
+    { c: 'users', k: { referredBy: 1 } },
+    { c: 'users', k: { isBanned: 1 } },
+    { c: 'users', k: { weeklyReferralCount: -1 } },
+    { c: 'users', k: { completedReferralCount: 1 } },
+    // TTL: a BANNED user's whole document is deleted 60 days after bannedAt (the permanent bannedTelegramIds / bannedDevices registries keep the ban)
+    { c: 'users', k: { bannedAt: 1 }, o: { expireAfterSeconds: 60 * D, partialFilterExpression: { isBanned: true } } },
+    // TTL: 90 days without opening the app -> the whole user document is deleted (rolling: api/user.js init and withdrawCreate refresh lastActiveAt)
+    { c: 'users', k: { lastActiveAt: 1 }, o: { expireAfterSeconds: 90 * D } },
+    // ── tasks ──
+    { c: 'tasks', k: { isApproved: 1, category: 1, createdAt: -1 } },
+    { c: 'tasks', k: { createdBy: 1, isUserCreated: 1, createdAt: -1 } },
+    { c: 'tasks', k: { isUserCreated: 1, reviewStatus: 1, createdAt: 1 } },
+    // TTL: a user-created task is deleted 5 days after it reached its completion limit
+    { c: 'tasks', k: { completedAt: 1 }, o: { expireAfterSeconds: 5 * D, partialFilterExpression: { isUserCreated: true } } },
+    // ── withdrawals (paid / pending are financial records and never expire) ──
+    { c: 'withdrawals', k: { userId: 1, createdAt: -1 } },
+    { c: 'withdrawals', k: { details: 1 } },
+    { c: 'withdrawals', k: { status: 1, createdAt: 1 } },
+    { c: 'withdrawals', k: { processedAt: 1 }, o: { expireAfterSeconds: 90 * D, partialFilterExpression: { status: 'rejected' } } },
+    // ── promos ──
+    { c: 'promos', k: { code: 1 }, o: { unique: true } },
+    { c: 'promos', k: { expiresAt: 1 }, o: { expireAfterSeconds: 1 * D } },            // usable 24h, document kept 24h more for the admin stats
+    // ── device / abuse registries ──
+    { c: 'fingerprints', k: { lastSeenAt: 1 }, o: { expireAfterSeconds: 180 * D } },
+    { c: 'ipRegistry', k: { lastSeenAt: 1 }, o: { expireAfterSeconds: 120 * D } },
+    { c: 'ipRegistry', k: { userId: 1 } },
+    { c: 'ipSignups', k: { lastSeenAt: 1 }, o: { expireAfterSeconds: 7 * D } },       // NEW: was never cleaned (one document per IP, forever)
+    // ── gifts ──
+    { c: 'gifts', k: { claimedAt: 1 }, o: { expireAfterSeconds: 30 * D, partialFilterExpression: { status: 'claimed' } } },
+    { c: 'gifts', k: { createdAt: 1 }, o: { expireAfterSeconds: 180 * D, partialFilterExpression: { status: 'pending' } } },
+    // ── admin helpers ──
+    { c: 'weeklyReferralReports', k: { weekEndedAt: -1 } },
+    { c: 'adminState', k: { updatedAt: 1 }, o: { expireAfterSeconds: 3600 } },
+    { c: 'adminClusters', k: { createdAt: 1 }, o: { expireAfterSeconds: 7 * D } },
+    { c: 'broadcastJobs', k: { finishedAt: 1 }, o: { expireAfterSeconds: 30 * D, partialFilterExpression: { status: 'done' } } },
+    { c: 'unmatchedTonDeposits', k: { createdAt: 1 }, o: { expireAfterSeconds: 180 * D } },   // NEW: audit rows, 6 months
+    // ── Create Task orders ──
+    { c: 'taskCreateOrders', k: { memo: 1 }, o: { unique: true } },
+    { c: 'taskCreateOrders', k: { userId: 1, status: 1 } },
+    { c: 'taskCreateOrders', k: { expiresAt: 1 }, o: { expireAfterSeconds: 3600, partialFilterExpression: { status: 'pending' } } },
+    { c: 'taskCreateOrders', k: { expiredAt: 1 }, o: { expireAfterSeconds: 30 * D, partialFilterExpression: { status: 'expired' } } },
+];
 
-import { connectToDatabase } from '../../lib/mongodb.js';
-import { isCronAuthorized } from '../../lib/cronAuth.js';
+const same = (a, b) => JSON.stringify(a || {}) === JSON.stringify(b || {});
 
-const BOT_TOKEN = process.env.BOT_TOKEN;
-
-export default async function handler(req, res) {
-    if (!isCronAuthorized(req)) {
-        return res.status(401).json({ ok: false, error: 'unauthorized' });
-    }
-
+export async function ensureIndexes(db, specs = INDEX_SPECS) {
     const results = [];
-    try {
-        const { db } = await connectToDatabase();
-
-        const steps = [
-            ['users.referredBy', () => db.collection('users').createIndex({ referredBy: 1 })],
-            ['users.isBanned', () => db.collection('users').createIndex({ isBanned: 1 })],
-            ['users.weeklyReferralCount', () => db.collection('users').createIndex({ weeklyReferralCount: -1 })],
-            ['users.bannedAt (partial TTL 60d, isBanned:true only)', () => db.collection('users').createIndex(
-                { bannedAt: 1 },
-                { expireAfterSeconds: 5184000, partialFilterExpression: { isBanned: true } }
-            )],
-            ['tasks.isApproved+category+createdAt', () => db.collection('tasks').createIndex({ isApproved: 1, category: 1, createdAt: -1 })],
-            ['withdrawals.userId+createdAt', () => db.collection('withdrawals').createIndex({ userId: 1, createdAt: -1 })],
-            ['withdrawals.details', () => db.collection('withdrawals').createIndex({ details: 1 })],
-            ['promos.code (unique)', () => db.collection('promos').createIndex({ code: 1 }, { unique: true })],
-            ['promos.expiresAt (TTL)', () => db.collection('promos').createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 })],
-            // the two cleanup indexes for this update
-            ['fingerprints.lastSeenAt (TTL 180d)', () => db.collection('fingerprints').createIndex({ lastSeenAt: 1 }, { expireAfterSeconds: 15552000 })],
-            ['gifts.claimedAt (partial TTL 30d, status:claimed only)', () => db.collection('gifts').createIndex(
-                { claimedAt: 1 },
-                { expireAfterSeconds: 2592000, partialFilterExpression: { status: 'claimed' } }
-            )],
-            // 17 Oct 2026: the Spin Wheel was removed, so the old spinLogs indexes are no longer created (existing rows expire by themselves via the old 30-day TTL)
-            ['weeklyReferralReports.weekEndedAt', () => db.collection('weeklyReferralReports').createIndex({ weekEndedAt: -1 })],
-            ['adminState.updatedAt (TTL 1h)', () => db.collection('adminState').createIndex({ updatedAt: 1 }, { expireAfterSeconds: 3600 })],
-            // resumable broadcast jobs (lib/broadcastJob.js). One doc
-            // per broadcast campaign, auto-cleaned 30 days after it finishes.
-            ['broadcastJobs.finishedAt (partial TTL 30d, status:done only)', () => db.collection('broadcastJobs').createIndex(
-                { finishedAt: 1 },
-                { expireAfterSeconds: 2592000, partialFilterExpression: { status: 'done' } }
-            )],
-            // Create Task (api/payments.js). See
-            // models/schema.js's taskCreateOrders collection
-            // docs for the full field shapes these indexes support.
-            ['taskCreateOrders.memo (unique)', () => db.collection('taskCreateOrders').createIndex({ memo: 1 }, { unique: true })],
-            ['taskCreateOrders.userId+status', () => db.collection('taskCreateOrders').createIndex({ userId: 1, status: 1 })],
-            ['taskCreateOrders.expiresAt (partial TTL 1h, status:pending only)', () => db.collection('taskCreateOrders').createIndex(
-                { expiresAt: 1 },
-                { expireAfterSeconds: 3600, partialFilterExpression: { status: 'pending' } }
-            )],
-            ['taskCreateOrders.expiredAt (partial TTL 30d, status:expired only)', () => db.collection('taskCreateOrders').createIndex(
-                { expiredAt: 1 },
-                { expireAfterSeconds: 2592000, partialFilterExpression: { status: 'expired' } }
-            )],
-            ['tasks.completedAt (partial TTL 5d, isUserCreated:true only)', () => db.collection('tasks').createIndex(
-                { completedAt: 1 },
-                { expireAfterSeconds: 432000, partialFilterExpression: { isUserCreated: true } }
-            )],
-            ['tasks.createdBy+isUserCreated+createdAt ("My Created Tasks")', () => db.collection('tasks').createIndex({ createdBy: 1, isUserCreated: 1, createdAt: -1 })],
-            ['tasks.isUserCreated+reviewStatus+createdAt ("🕐 Pending Review")', () => db.collection('tasks').createIndex({ isUserCreated: 1, reviewStatus: 1, createdAt: 1 })],
-        ];
-
-        for (const [name, fn] of steps) {
-            try {
-                await fn();
-                results.push({ index: name, ok: true });
-            } catch (err) {
-                // একটা index fail করলেও বাকিগুলো চালিয়ে যাও — partial success useful
-                results.push({ index: name, ok: false, error: err.message });
+    for (const { c, k, o = {} } of specs) {
+        const name = `${c}.${Object.keys(k).join('+')}${o.expireAfterSeconds !== undefined ? ` (TTL ${o.expireAfterSeconds}s)` : ''}`;
+        const col = db.collection(c);
+        try {
+            await col.createIndex(k, o);
+            results.push({ index: name, ok: true });
+        } catch (e) {
+            if (e && (e.code === 85 || e.code === 86)) {   // same key, different options
+                try {
+                    const ex = (await col.indexes()).find((i) => same(i.key, k));
+                    if (ex && o.expireAfterSeconds !== undefined && ex.expireAfterSeconds !== undefined && same(ex.partialFilterExpression, o.partialFilterExpression) && !!ex.unique === !!o.unique) {
+                        await db.command({ collMod: c, index: { keyPattern: k, expireAfterSeconds: o.expireAfterSeconds } });
+                        results.push({ index: name, ok: true, changed: 'ttl updated in place' });
+                    } else if (ex) {
+                        await col.dropIndex(ex.name);
+                        await col.createIndex(k, o);
+                        results.push({ index: name, ok: true, changed: 're-created' });
+                    } else throw e;
+                } catch (e2) { results.push({ index: name, ok: false, error: String(e2.message || e2).slice(0, 200) }); }
+            } else {
+                results.push({ index: name, ok: false, error: String((e && e.message) || e).slice(0, 200) });
             }
         }
-
-        const failed = results.filter(r => !r.ok);
-        return res.status(200).json({ ok: failed.length === 0, results });
-    } catch (err) {
-        return res.status(500).json({ ok: false, error: 'server_error', message: err.message, results });
     }
-}
+    return results;
+                          }
