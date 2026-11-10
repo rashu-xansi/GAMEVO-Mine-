@@ -6,14 +6,24 @@
 import { ObjectId } from 'mongodb';
 import { connectToDatabase } from '../lib/mongodb.js';
 import { tgApi } from '../lib/telegram.js';
+import { rateLimited } from '../lib/rateLimit.js';
+import { getClientIp } from '../lib/ipRegistry.js';
+
+// Small in-memory cache for logo images: this server has no CDN in front, so without it every logo request = 1 Telegram getFile + a 1 MB download.
+const LOGO_CACHE = new Map();               // key -> { at, buf, type }
+const LOGO_TTL_MS = 10 * 60 * 1000, LOGO_MAX_ENTRIES = 100;
+function logoGet(k) { const e = LOGO_CACHE.get(k); if (e && Date.now() - e.at < LOGO_TTL_MS) return e; LOGO_CACHE.delete(k); return null; }
+function logoPut(k, buf, type) { if (LOGO_CACHE.size >= LOGO_MAX_ENTRIES) LOGO_CACHE.delete(LOGO_CACHE.keys().next().value); LOGO_CACHE.set(k, { at: Date.now(), buf, type }); }
 
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
         return res.status(405).json({ ok: false, error: 'method_not_allowed' });
     }
 
+    if (rateLimited('data-ip:' + getClientIp(req), 120, 60000)) return res.status(429).json({ ok: false, error: 'too_fast' });
+
     try {
-        const { type } = req.query;
+        const type = typeof req.query.type === 'string' ? req.query.type : '';
         const { db } = await connectToDatabase();
 
         // v1.2 (saves Vercel usage): these lists are the same for everybody, so Vercel's edge cache answers them
@@ -45,6 +55,7 @@ export default async function handler(req, res) {
             return res.status(200).json({ ok: true, hasLogo: !!(d && d.logoFileId), logoUrl, v: d && d.updatedAt ? new Date(d.updatedAt).getTime() : 0 });
         }
         if (type === 'pinnedLogo') {
+            const hit = logoGet('pinned'); if (hit) { res.setHeader('Content-Type', hit.type); res.setHeader('Cache-Control', 'public, max-age=3600'); res.setHeader('X-Content-Type-Options', 'nosniff'); return res.status(200).send(hit.buf); }
             const d = await db.collection('botSettings').findOne({ _id: 'pinnedTask' }, { projection: { logoFileId: 1 } });
             if (!d || !d.logoFileId) { res.setHeader('Cache-Control', 'public, s-maxage=60'); return res.status(404).end(); }
             const f = await tgApi('getFile', { file_id: d.logoFileId });
@@ -54,7 +65,8 @@ export default async function handler(req, res) {
             if (!img.ok) { res.setHeader('Cache-Control', 'public, s-maxage=60'); return res.status(404).end(); }
             const buf = Buffer.from(await img.arrayBuffer());
             if (buf.length > 1024 * 1024) return res.status(404).end();
-            res.setHeader('Content-Type', path.endsWith('.png') ? 'image/png' : path.endsWith('.webp') ? 'image/webp' : 'image/jpeg');
+            const ctype = path.endsWith('.png') ? 'image/png' : path.endsWith('.webp') ? 'image/webp' : 'image/jpeg'; logoPut('pinned', buf, ctype);
+            res.setHeader('Content-Type', ctype);
             res.setHeader('Cache-Control', 'public, max-age=604800, s-maxage=604800, immutable'); // the page adds ?v=<updatedAt>, so a new logo = a new URL
             res.setHeader('X-Content-Type-Options', 'nosniff');
             return res.status(200).send(buf);
@@ -65,6 +77,7 @@ export default async function handler(req, res) {
         if (type === 'taskLogo') {
             let oid;
             try { oid = new ObjectId(String(req.query.id)); } catch { return res.status(404).end(); }
+            const hit = logoGet('task:' + String(oid)); if (hit) { res.setHeader('Content-Type', hit.type); res.setHeader('Cache-Control', 'public, max-age=3600'); res.setHeader('X-Content-Type-Options', 'nosniff'); return res.status(200).send(hit.buf); }
             const t = await db.collection('tasks').findOne({ _id: oid, isApproved: true }, { projection: { logoFileId: 1 } });
             if (!t || !t.logoFileId) { res.setHeader('Cache-Control', 'public, s-maxage=300'); return res.status(404).end(); }
             const f = await tgApi('getFile', { file_id: t.logoFileId });
@@ -74,7 +87,8 @@ export default async function handler(req, res) {
             if (!img.ok) { res.setHeader('Cache-Control', 'public, s-maxage=300'); return res.status(404).end(); }
             const buf = Buffer.from(await img.arrayBuffer());
             if (buf.length > 1024 * 1024) return res.status(404).end();
-            res.setHeader('Content-Type', path.endsWith('.png') ? 'image/png' : path.endsWith('.webp') ? 'image/webp' : 'image/jpeg');
+            const ctype = path.endsWith('.png') ? 'image/png' : path.endsWith('.webp') ? 'image/webp' : 'image/jpeg'; logoPut('task:' + String(oid), buf, ctype);
+            res.setHeader('Content-Type', ctype);
             res.setHeader('Cache-Control', 'public, max-age=604800, s-maxage=604800, immutable');
             res.setHeader('X-Content-Type-Options', 'nosniff');
             return res.status(200).send(buf);
@@ -105,4 +119,4 @@ export default async function handler(req, res) {
         console.error('data error:', err);
         return res.status(500).json({ ok: false, error: 'server_error' });
     }
-    }
+                }
