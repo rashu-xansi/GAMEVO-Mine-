@@ -47,7 +47,8 @@ function detectIp(req) {
     const pick = (h) => { const v = req.headers[h]; return v ? String(v).split(',')[0].trim() : ''; };
     const forced = (process.env.TRUST_IP_HEADER || '').toLowerCase();
     if (forced && pick(forced)) return { ip: pick(forced), from: forced };
-    for (const h of ['cf-connecting-ip', 'true-client-ip']) if (pick(h)) return { ip: pick(h), from: h };
+    // true-client-ip is NOT trusted by default: unless Cloudflare Enterprise sets it, a visitor can send it himself and fake his IP (set TRUST_IP_HEADER to use it)
+    if (pick('cf-connecting-ip')) return { ip: pick('cf-connecting-ip'), from: 'cf-connecting-ip' };
     if (pick('x-forwarded-for')) return { ip: pick('x-forwarded-for'), from: 'x-forwarded-for' };
     return { ip: req.socket?.remoteAddress || 'unknown', from: 'socket' };
 }
@@ -118,6 +119,8 @@ const server = http.createServer(async (req, res) => {
     try {
         applyCors(req, res);
         res.setHeader('X-Content-Type-Options', 'nosniff');
+        res.setHeader('Referrer-Policy', 'no-referrer');
+        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
         const url = new URL(req.url, 'http://localhost');
 
         if (req.method === 'OPTIONS') { res.statusCode = 204; return res.end(); }
@@ -164,6 +167,13 @@ process.on('unhandledRejection', (e) => console.error('unhandledRejection:', e))
 process.on('uncaughtException', (e) => console.error('uncaughtException:', e));
 for (const sig of ['SIGTERM', 'SIGINT']) {
     process.on(sig, () => { console.log(sig + ' received, closing…'); server.close(() => process.exit(0)); setTimeout(() => process.exit(0), 8000).unref(); });
+}
+
+// startup security checklist (warnings only - the server still starts)
+for (const [name, min] of [['BOT_TOKEN', 20], ['MONGODB_URI', 10], ['TELEGRAM_WEBHOOK_SECRET', 16], ['SIGNING_SECRET', 24], ['ADSGRAM_S2S_SECRET', 16], ['CRON_SECRET', 16], ['ADMIN_TELEGRAM_ID', 5]]) {
+    const v = process.env[name];
+    if (!v) console.warn(`SECURITY WARNING: env ${name} is NOT set`);
+    else if (v.length < min) console.warn(`SECURITY WARNING: env ${name} looks too short (use a long random value)`);
 }
 
 server.listen(PORT, '0.0.0.0', () => {
