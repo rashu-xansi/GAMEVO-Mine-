@@ -36,7 +36,7 @@ export default async function handler(req, res) {
             const page = Math.max(1, Math.min(200, parseInt(req.query.page) || 1));
             const limit = Math.max(1, Math.min(30, parseInt(req.query.limit) || 15));
             const rows = await db.collection('tasks')
-                .find({ isApproved: true, $or: [{ limit: { $in: [0, null] } }, { limit: { $exists: false } }, { $expr: { $lt: ['$completionCount', '$limit'] } }] })
+                .find({ isApproved: true, category: { $ne: 'pinned' }, $or: [{ limit: { $in: [0, null] } }, { limit: { $exists: false } }, { $expr: { $lt: ['$completionCount', '$limit'] } }] })
                 .project({ title: 1, url: 1, category: 1, verifyType: 1, rewardWtc: 1, rewardCurrency: 1, rewardUsdt: 1, logoUrl: 1, logoFileId: 1 })
                 .sort({ createdAt: -1, _id: -1 })
                 .skip((page - 1) * limit)
@@ -47,27 +47,45 @@ export default async function handler(req, res) {
             return res.status(200).json({ ok: true, tasks, page, hasMore });
         }
 
-        // 2 Nov 2026: the pinned GameVo Mine Pay task - its logo is set by the admin from the bot (📌 Pinned Logo). Small answer, cached 2 minutes.
-        if (type === 'pinnedTask') {
-            res.setHeader('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=300');
-            const d = await db.collection('botSettings').findOne({ _id: 'pinnedTask' });
-            const logoUrl = d && d.logoUrl && /^https:\/\//i.test(d.logoUrl) ? d.logoUrl : null;
-            return res.status(200).json({ ok: true, hasLogo: !!(d && d.logoFileId), logoUrl, v: d && d.updatedAt ? new Date(d.updatedAt).getTime() : 0 });
+        // 11 Nov 2026: PINNED tasks are made by the admin in the bot (📌 Pin Task): logo, reward, one-time / permanent. They are shown on top of Daily tasks.
+        // The page hides a one-time pinned task once the user finished it; a permanent one stays visible (marked Done).
+        if (type === 'pinnedTasks') {
+            res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=120');
+            const rows = await db.collection('tasks')
+                .find({ isApproved: true, category: 'pinned' })
+                .project({ title: 1, url: 1, verifyType: 1, rewardWtc: 1, logoUrl: 1, logoFileId: 1, keepAfterClaim: 1 })
+                .sort({ createdAt: -1, _id: -1 }).limit(10).toArray();
+            const tasks = rows.map(({ logoFileId, ...t }) => ({ ...t, keepAfterClaim: !!t.keepAfterClaim, hasLogo: !!logoFileId }));
+            return res.status(200).json({ ok: true, tasks });
         }
-        if (type === 'pinnedLogo') {
-            const hit = logoGet('pinned'); if (hit) { res.setHeader('Content-Type', hit.type); res.setHeader('Cache-Control', 'public, max-age=3600'); res.setHeader('X-Content-Type-Options', 'nosniff'); return res.status(200).send(hit.buf); }
-            const d = await db.collection('botSettings').findOne({ _id: 'pinnedTask' }, { projection: { logoFileId: 1 } });
-            if (!d || !d.logoFileId) { res.setHeader('Cache-Control', 'public, s-maxage=60'); return res.status(404).end(); }
-            const f = await tgApi('getFile', { file_id: d.logoFileId });
+        // Ad logos (GigaPub / Adsgram) set by the admin in the bot (🖼 Ad Logos). Small answer, cached 2 minutes.
+        if (type === 'adLogos') {
+            res.setHeader('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=300');
+            const d0 = await db.collection('botSettings').findOne({ _id: 'adLogos' }) || {};
+            const out = { ok: true, v: d0.updatedAt ? new Date(d0.updatedAt).getTime() : 0 };
+            for (const k of ['giga', 'special', 'task']) {
+                const u = d0[k + 'Url'] && /^https:\/\//i.test(d0[k + 'Url']) ? d0[k + 'Url'] : null;
+                out[k] = { hasLogo: !!d0[k + 'FileId'], logoUrl: u };
+            }
+            return res.status(200).json(out);
+        }
+        if (type === 'adLogo') {
+            const k = String(req.query.k || '');
+            if (!['giga', 'special', 'task'].includes(k)) return res.status(404).end();
+            const hit = logoGet('ad:' + k); if (hit) { res.setHeader('Content-Type', hit.type); res.setHeader('Cache-Control', 'public, max-age=3600'); res.setHeader('X-Content-Type-Options', 'nosniff'); return res.status(200).send(hit.buf); }
+            const d1 = await db.collection('botSettings').findOne({ _id: 'adLogos' }, { projection: { [k + 'FileId']: 1 } });
+            const fileId = d1 && d1[k + 'FileId'];
+            if (!fileId) { res.setHeader('Cache-Control', 'public, s-maxage=60'); return res.status(404).end(); }
+            const f = await tgApi('getFile', { file_id: fileId });
             const path = f && f.ok && f.result && f.result.file_path;
             if (!path || !/^[\w\/.-]+$/.test(path)) { res.setHeader('Cache-Control', 'public, s-maxage=60'); return res.status(404).end(); }
             const img = await fetch(`https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${path}`);
             if (!img.ok) { res.setHeader('Cache-Control', 'public, s-maxage=60'); return res.status(404).end(); }
             const buf = Buffer.from(await img.arrayBuffer());
             if (buf.length > 1024 * 1024) return res.status(404).end();
-            const ctype = path.endsWith('.png') ? 'image/png' : path.endsWith('.webp') ? 'image/webp' : 'image/jpeg'; logoPut('pinned', buf, ctype);
+            const ctype = path.endsWith('.png') ? 'image/png' : path.endsWith('.webp') ? 'image/webp' : 'image/jpeg'; logoPut('ad:' + k, buf, ctype);
             res.setHeader('Content-Type', ctype);
-            res.setHeader('Cache-Control', 'public, max-age=604800, s-maxage=604800, immutable'); // the page adds ?v=<updatedAt>, so a new logo = a new URL
+            res.setHeader('Cache-Control', 'public, max-age=604800, s-maxage=604800, immutable');   // the page adds ?v=<updatedAt>, so a new logo = a new URL
             res.setHeader('X-Content-Type-Options', 'nosniff');
             return res.status(200).send(buf);
         }
@@ -119,4 +137,4 @@ export default async function handler(req, res) {
         console.error('data error:', err);
         return res.status(500).json({ ok: false, error: 'server_error' });
     }
-                }
+}
