@@ -11,15 +11,6 @@
             ]
         },
         {
-            "source": "/game.html",
-            "headers": [
-                {
-                    "key": "Cache-Control",
-                    "value": "no-cache, must-revalidate"
-                }
-            ]
-        },
-        {
             "source": "/i18n.js",
             "headers": [
                 {
