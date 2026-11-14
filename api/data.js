@@ -12,6 +12,7 @@ import { getClientIp } from '../lib/ipRegistry.js';
 // Small in-memory cache for logo images: this server has no CDN in front, so without it every logo request = 1 Telegram getFile + a 1 MB download.
 const LOGO_CACHE = new Map();               // key -> { at, buf, type }
 const LOGO_TTL_MS = 10 * 60 * 1000, LOGO_MAX_ENTRIES = 100;
+const PROOF_CACHE = new Map();             // page -> { at, body }
 function logoGet(k) { const e = LOGO_CACHE.get(k); if (e && Date.now() - e.at < LOGO_TTL_MS) return e; LOGO_CACHE.delete(k); return null; }
 function logoPut(k, buf, type) { if (LOGO_CACHE.size >= LOGO_MAX_ENTRIES) LOGO_CACHE.delete(LOGO_CACHE.keys().next().value); LOGO_CACHE.set(k, { at: Date.now(), buf, type }); }
 
@@ -132,9 +133,53 @@ export default async function handler(req, res) {
             return res.status(200).json({ ok: true, top: rows.slice(0, limit), page, offset: (page - 1) * limit, hasMore: rows.length > limit && page < 10 });
         }
 
+        // PAYMENT PROOF (14 Nov 2026, admin): the "Payment proof" button in Profile shows how many withdrawals were paid, the totals and a
+        // numbered list of the latest payouts. Public, read-only, and PRIVATE by design: names are cut to 2 letters (Ra•••), the TON address
+        // shows only its first 4 and last 4 characters, and the Telegram id is never sent. The serial number is the payout count
+        // (the newest paid withdrawal = the biggest number). Cached 60 s in memory so many users open it without many database reads.
+        if (type === 'paymentProof') {
+            res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=120');
+            const page = Math.max(1, Math.min(50, parseInt(req.query.page) || 1));
+            const limit = 15;
+            const hit = PROOF_CACHE.get(page);
+            if (hit && Date.now() - hit.at < 60000) return res.status(200).json(hit.body);
+            const wds = db.collection('withdrawals');
+            const [paidCount, pendingCount, sums, rows] = await Promise.all([
+                wds.countDocuments({ status: 'paid' }),
+                wds.countDocuments({ status: 'pending' }),
+                wds.aggregate([{ $match: { status: 'paid' } }, { $group: { _id: null, gm: { $sum: '$wtcAmount' }, net: { $sum: '$netWtc' }, usd: { $sum: '$netUsd' } } }]).toArray(),
+                wds.find({ status: 'paid' }).project({ userId: 1, wtcAmount: 1, netWtc: 1, netUsd: 1, details: 1, processedAt: 1, createdAt: 1 })
+                    .sort({ processedAt: -1, _id: -1 }).skip((page - 1) * limit).limit(limit + 1).toArray(),
+            ]);
+            const slice = rows.slice(0, limit);
+            const ids = [...new Set(slice.map(r => r.userId))];
+            const us = ids.length ? await db.collection('users').find({ _id: { $in: ids } }).project({ firstName: 1, telegramUsername: 1 }).toArray() : [];
+            const nameOf = new Map(us.map(u => [u._id, String(u.firstName || u.telegramUsername || 'User')]));
+            const mask = (n) => { const a = Array.from(String(n).replace(/[<>&]/g, '').trim()); return (a.slice(0, 2).join('') || 'U') + '•••'; };
+            const maskAddr = (a) => { const t = String(a || ''); return t.length > 10 ? t.slice(0, 4) + '…' + t.slice(-4) : '••••'; };
+            const sum = sums[0] || {};
+            const body = {
+                ok: true,
+                totals: {
+                    paid: paidCount, pending: pendingCount, requested: paidCount + pendingCount,
+                    paidGm: Math.round(sum.gm || 0), paidNetGm: Math.round(sum.net || 0), paidUsd: Number(sum.usd || 0).toFixed(2),
+                },
+                rows: slice.map((r, i) => ({
+                    n: paidCount - ((page - 1) * limit + i),
+                    name: mask(nameOf.get(r.userId) || 'User'),
+                    gm: r.wtcAmount || 0, net: r.netWtc || 0, usd: r.netUsd != null ? Number(r.netUsd).toFixed(2) : '',
+                    addr: maskAddr(r.details), at: new Date(r.processedAt || r.createdAt || Date.now()).getTime(),
+                })),
+                page, hasMore: rows.length > limit,
+            };
+            if (PROOF_CACHE.size > 60) PROOF_CACHE.clear();
+            PROOF_CACHE.set(page, { at: Date.now(), body });
+            return res.status(200).json(body);
+        }
+
         return res.status(400).json({ ok: false, error: 'unknown_type' });
     } catch (err) {
         console.error('data error:', err);
         return res.status(500).json({ ok: false, error: 'server_error' });
     }
-}
+                                    }
