@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Blocky Village</title>
+<style>
+:root{--ui:rgba(24,18,10,.7);--ac:#ffd54a}
+html,body{margin:0;height:100%;overflow:hidden;background:#8fd0f0;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;font-family:ui-monospace,"Courier New",monospace,"Noto Sans Bengali",sans-serif;color:#fff}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.pill{position:fixed;background:var(--ui);border:2px solid #fff3;border-radius:10px;padding:5px 11px;font-weight:700;font-size:15px;text-shadow:0 2px 0 #0006;backdrop-filter:blur(4px)}
+#coins{top:calc(env(safe-area-inset-top,0px) + 10px);left:10px;color:var(--ac)}
+#clock{top:calc(env(safe-area-inset-top,0px) + 10px);left:50%;transform:translateX(-50%);font-size:12px;white-space:nowrap}
+#lv{top:calc(env(safe-area-inset-top,0px) + 92px);left:10px;font-size:12px}
+#pop{top:calc(env(safe-area-inset-top,0px) + 52px);left:10px;font-size:12px}
+#gm{top:calc(env(safe-area-inset-top,0px) + 92px);left:128px;font-size:12px;color:#7df}
+.bt{position:fixed;width:46px;height:46px;border-radius:10px;border:2px solid #fff4;background:var(--ui);color:#fff;font-size:20px;font-weight:700;padding:0;touch-action:manipulation;backdrop-filter:blur(4px)}
+.bt:active{background:#ffffff55}
+#bR{right:10px;top:calc(env(safe-area-inset-top,0px) + 10px)}
+#bL{right:62px;top:calc(env(safe-area-inset-top,0px) + 10px)}
+#bI{right:10px;top:calc(env(safe-area-inset-top,0px) + 62px)}
+#bO{right:10px;top:calc(env(safe-area-inset-top,0px) + 114px)}
+#bH{right:10px;top:calc(env(safe-area-inset-top,0px) + 166px)}
+#bT{right:10px;top:calc(env(safe-area-inset-top,0px) + 218px)}
+#bQ{right:10px;top:calc(env(safe-area-inset-top,0px) + 270px)}
+.bt.on{background:#7a5412dd}
+#bld{top:calc(env(safe-area-inset-top,0px) + 52px);left:128px;font-size:12px}
+#stat{position:fixed;top:calc(env(safe-area-inset-top,0px) + 128px);left:10px;width:132px;background:var(--ui);border:2px solid #fff3;border-radius:10px;padding:5px 7px;font-size:11px;backdrop-filter:blur(4px);touch-action:manipulation}
+#stat .sr{display:flex;align-items:center;gap:5px;height:17px}
+#stat i{font-style:normal;width:15px;font-size:12px}
+#stat u{flex:1;height:7px;background:#0008;border-radius:4px;overflow:hidden;display:block}
+#stat s{display:block;height:100%;width:0;border-radius:4px;transition:width .6s}
+#stat em{font-style:normal;width:32px;text-align:right;font-weight:700;font-size:11px}
+#dq,#toast,#hint,#do button{unicode-bidi:plaintext}
+#hint{top:calc(env(safe-area-inset-top,0px) + 232px);left:10px;font-size:12px;line-height:1.4;max-width:62vw;transition:opacity 1s}
+#bar{position:fixed;left:0;right:0;bottom:0;display:flex;gap:6px;padding:8px 8px calc(env(safe-area-inset-bottom,0px) + 8px);overflow-x:auto;background:linear-gradient(transparent,#000a);touch-action:pan-x;scrollbar-width:none}
+.it{flex:0 0 auto;min-width:56px;height:56px;border-radius:10px;border:2px solid #fff4;background:var(--ui);color:#fff;font:700 10px ui-monospace,monospace;padding:2px 4px;touch-action:manipulation;line-height:1.15}
+.it b{display:block;font-size:20px;font-weight:400}
+.it.on{border-color:var(--ac);background:#7a5412dd}
+.row{position:fixed;left:8px;right:8px;display:none;gap:6px;overflow-x:auto;touch-action:pan-x;align-items:center;scrollbar-width:none}
+#sub{bottom:calc(env(safe-area-inset-bottom,0px) + 74px)}
+#cf{bottom:calc(env(safe-area-inset-bottom,0px) + 132px);justify-content:center}
+#cf span{background:var(--ui);padding:8px 10px;border-radius:10px;font-size:13px;font-weight:700;white-space:nowrap}
+#cf .it{min-width:50px;height:44px;font-size:20px}
+#tg{position:fixed;inset:0;z-index:7;display:none;pointer-events:none}
+#tg.on{display:block}
+#tg.m{pointer-events:auto;background:#000a}
+.tgp{pointer-events:auto;position:absolute;left:50%;transform:translateX(-50%);width:min(94vw,430px);bottom:calc(env(safe-area-inset-bottom,0px) + 196px);display:flex;gap:10px;background:#2a1e12f4;border:3px solid var(--ac);border-radius:14px;padding:10px;box-shadow:0 6px 0 #0007;animation:tgin .35s ease-out}
+#tg.m .tgp{top:50%;bottom:auto;transform:translate(-50%,-50%);animation:none}
+#tgav{flex:0 0 66px;height:66px;border:3px solid #1b1b1b;border-radius:10px;overflow:hidden;background:#8fd0f0}
+#tg.m #tgav{flex-basis:84px;height:84px}
+#tgav svg{display:block;width:100%;height:100%}
+.tgb{flex:1;min-width:0}
+#tgn{color:var(--ac);font-size:13px;unicode-bidi:plaintext}
+#tgt{font-size:14px;line-height:1.45;min-height:40px;white-space:pre-line;margin:2px 0 6px;unicode-bidi:plaintext}
+.tgf{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.tgf button{padding:7px 12px;border-radius:9px;border:2px solid #fff4;background:#4a3620;color:#fff;font:inherit;font-size:13px;touch-action:manipulation}
+#tgx{background:#7a5412;border-color:var(--ac)}
+@keyframes tgin{from{transform:translate(-50%,26px);opacity:0}}
+.it.hl{border-color:#6f6!important;animation:hlp 1s ease-in-out infinite}
+@keyframes hlp{50%{box-shadow:0 0 0 5px #6f68;transform:translateY(-4px)}}
+#dlg{display:none;position:fixed;inset:0;background:#0008;align-items:center;justify-content:center;z-index:5}
+.card{background:#2a1e12;border:2px solid var(--ac);border-radius:14px;padding:16px;max-width:86vw;width:340px;font-size:15px;line-height:1.5}
+.card button{display:block;width:100%;margin-top:8px;padding:10px;border-radius:10px;border:2px solid #fff4;background:#4a3620;color:#fff;font:inherit;font-size:14px}
+#dq{white-space:pre-line}
+#toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 130px);transform:translateX(-50%);background:#000b;padding:8px 14px;border-radius:10px;font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;text-align:center;max-width:84vw;z-index:6}
+#err{display:none;position:fixed;left:6px;right:6px;top:70px;background:#b00020e6;padding:6px 10px;border-radius:8px;font-size:12px;z-index:9;pointer-events:none}
+</style></head><body>
+<canvas id="cv"></canvas>
+<div class="pill" id="coins">🪙 0</div>
+<div class="pill" id="clock">☀</div>
+<div class="pill" id="pop">👥 0</div><div class="pill" id="lv">🏅 Lv 1</div><div class="pill" id="gm">💠 GM$ 0</div>
+<button class="bt" id="bL">⟲</button><button class="bt" id="bR">⟳</button>
+<button class="bt" id="bI">＋</button><button class="bt" id="bO">－</button>
+<button class="bt" id="bH">⌂</button><button class="bt" id="bT">🕒</button><button class="bt" id="bQ">🎮</button>
+<div id="stat"></div><div class="pill" id="bld">👷 0/1</div>
+<div class="pill" id="hint"></div>
+<div class="row" id="sub"></div><div class="row" id="cf"></div><div id="bar"></div>
+<div id="tg"><div class="tgp"><div id="tgav"></div><div class="tgb"><b id="tgn"></b><div id="tgt"></div><div class="tgf"><button id="tgs"></button><button id="tgx"></button></div></div></div></div>
+<div id="dlg"><div class="card"><div id="dq"></div><div id="do"></div></div></div>
+<div id="toast"></div><div id="err"></div>
+<script src="gfx.js?v=7"></script>
+<script>
+window.addEventListener('error',function(e){var d=document.getElementById('err');d.style.display='block';d.textContent='⚠ '+e.message+' (line '+e.lineno+')'});
+// ================= graphics engine (gfx.js). If that file is missing the game still runs with a built-in default =================
+const GX=window.GFX||(function(){const P={id:'high',fps:60,dprCap:1.25,water:1,decor:true,glow:1,snow:35,pcap:150,rings:3,cloudAnim:true,vessels:2,cars:6,budget:7,tcap:100,lod:.5};
+ return{P:P,mode:'auto',ratio:1,TC:null,DICT:null,info:{},dpr(){return Math.max(.6,Math.min(window.devicePixelRatio||1,P.dprCap))},gate(){return true},tick(){},pcap(){return P.pcap},setMode(){},name(){return'High'},onChange(){}}})();
+// ================= language: the mini app's 7 languages (en default · ar · ru · es · hi · zh · bn) =================
+// Every visible text in the game is written in English in the code and goes through tt(); DICT maps it to [ar, ru, es, hi, zh, bn].
+// A text with no entry simply stays English. The app sends its language with GAME_LANG (and it is also read from localStorage 'nt_lang').
+let tut=0;   // new-player guide: 0 intro · 1 path · 2 house · 3 wait · 4 villager · 5 well · 6 shop · 7 outro · 99 done
+const LANGS=['en','ar','ru','es','hi','zh','bn'];
+let LANG=(()=>{try{const l=localStorage.getItem('nt_lang');return LANGS.includes(l)?l:'en'}catch(e){return 'en'}})();
+const DICT={"🌊 Water / outside the map": ["🌊 ماء / خارج الخريطة", "🌊 Вода / за пределами карты", "🌊 Agua / fuera del mapa", "🌊 पानी / नक्शे के बाहर", "🌊 水域 / 地图之外", "🌊 পানি/মাপের বাইরে"], "🔒 Land not bought (buy Land)": ["🔒 الأرض غير مشتراة (اشترِ أرضًا)", "🔒 Земля не куплена (купите Землю)", "🔒 Terreno sin comprar (compra Terreno)", "🔒 ज़मीन नहीं खरीदी (Land खरीदें)", "🔒 尚未购买土地（请购买土地）", "🔒 জমি কেনা হয়নি (Land কেনো)"], "🌳 A tree is here (cut it with 🚜)": ["🌳 توجد شجرة هنا (اقطعها بـ 🚜)", "🌳 Здесь дерево (срубите 🚜)", "🌳 Hay un árbol (córtalo con 🚜)", "🌳 यहाँ पेड़ है (🚜 से काटें)", "🌳 这里有树（用 🚜 砍掉）", "🌳 গাছ আছে (🚜 দিয়ে কাটো)"], "🏠 Something is already here": ["🏠 يوجد شيء هنا بالفعل", "🏠 Здесь уже что-то есть", "🏠 Ya hay algo aquí", "🏠 यहाँ पहले से कुछ है", "🏠 这里已有东西", "🏠 এখানে আগে থেকে কিছু আছে"], "🛣 There is a road/Path here": ["🛣 يوجد طريق/ممر هنا", "🛣 Здесь дорога/тропа", "🛣 Hay un camino/sendero aquí", "🛣 यहाँ सड़क/Path है", "🛣 这里有道路/小径", "🛣 রাস্তা/Path আছে"], "🟫 Empty space in front of the door": ["🟫 مساحة فارغة أمام الباب", "🟫 Свободное место перед дверью", "🟫 Espacio libre frente a la puerta", "🟫 दरवाज़े के सामने की खाली जगह", "🟫 门前的空地", "🟫 ঘরের দরজার সামনের খালি জায়গা"], "🌊 Place it by the water": ["🌊 ضعه بجانب الماء", "🌊 Ставьте у воды", "🌊 Colócalo junto al agua", "🌊 इसे पानी के किनारे रखें", "🌊 请放在水边", "🌊 পানির ধারে বসাও"], "🛣 Place it next to a big Road": ["🛣 ضعه بجانب طريق كبير", "🛣 Ставьте рядом с большой дорогой", "🛣 Colócalo junto a una carretera grande", "🛣 इसे बड़ी Road के पास रखें", "🛣 请放在大路旁边", "🛣 বড় Road-এর পাশে বসাও"], "🟨 Keep the yellow tile in front empty": ["🟨 اترك البلاطة الصفراء الأمامية فارغة", "🟨 Оставьте жёлтую клетку перед входом свободной", "🟨 Deja libre la baldosa amarilla del frente", "🟨 सामने की पीली टाइल खाली रखें", "🟨 请保持前方黄色格子为空", "🟨 সামনের হলুদ টাইল ফাঁকা রাখো"], "🍵 Place within 2 tiles of a Cha Dokan": ["🍵 ضعه ضمن بلاطتين من محل الشاي", "🍵 Ставьте в пределах 2 клеток от чайной", "🍵 Colócalo a 2 casillas de una casa de té", "🍵 Cha Dokan से 2 टाइल के भीतर रखें", "🍵 请放在茶铺 2 格范围内", "🍵 Cha Dokan-এর ২ টাইলের মধ্যে বসাও"], " needed": [" مطلوب", " нужен", " necesario", " चाहिए", " 需要", " লাগবে"], "🚫 Limit ": ["🚫 الحد ", "🚫 Лимит ", "🚫 Límite ", "🚫 सीमा ", "🚫 上限 ", "🚫 সীমা "], " only — level up to raise the limit": [" فقط — ارفع مستواك لزيادة الحد", " шт. — повысьте уровень, чтобы увеличить лимит", " máximo — sube de nivel para aumentar el límite", " — लेवल बढ़ाने पर सीमा बढ़ेगी", " — 升级可提高上限", "টি — লেভেল বাড়ালে সীমা বাড়বে"], "🔒 This product needs Level ": ["🔒 هذا المنتج يتطلب المستوى ", "🔒 Для этого товара нужен уровень ", "🔒 Este producto requiere el nivel ", "🔒 इस सामान के लिए Level ", "🔒 此商品需要等级 ", "🔒 এই পণ্যের জন্য Level "], "🔒 This land is not bought — press the 🗺️ Land button": ["🔒 لم تُشترَ هذه الأرض — اضغط زر 🗺️ Land", "🔒 Эта земля не куплена — нажмите кнопку 🗺️ Land", "🔒 Este terreno no está comprado — pulsa el botón 🗺️ Land", "🔒 यह ज़मीन नहीं खरीदी — 🗺️ Land बटन दबाएँ", "🔒 这块土地尚未购买 — 点击 🗺️ Land 按钮", "🔒 এই জমি কেনা হয়নি — 🗺️ Land বাটন চাপো"], "Not enough coins 🪙": ["عملات غير كافية 🪙", "Не хватает монет 🪙", "Faltan monedas 🪙", "सिक्के कम हैं 🪙", "金币不足 🪙", "কয়েন কম 🪙"], "🔨 Building… ": ["🔨 جارٍ البناء… ", "🔨 Строится… ", "🔨 Construyendo… ", "🔨 बन रहा है… ", "🔨 建造中… ", "🔨 তৈরি হচ্ছে… "], "⏳ Builder busy, waiting in line… ": ["⏳ العامل مشغول، في قائمة الانتظار… ", "⏳ Строитель занят, в очереди… ", "⏳ Constructor ocupado, en cola… ", "⏳ बिल्डर व्यस्त, कतार में… ", "⏳ 建筑工忙碌，排队中… ", "⏳ বিল্ডার ব্যস্ত, লাইনে আছে… "], " (tap the building to watch an ad and cut 5 minutes)": [" (اضغط على المبنى لمشاهدة إعلان وتقليل 5 دقائق)", " (нажмите на здание, посмотрите рекламу и сократите 5 минут)", " (toca el edificio para ver un anuncio y ahorrar 5 minutos)", " (बिल्डिंग पर टैप करके विज्ञापन देखें और 5 मिनट घटाएँ)", " （点击建筑，看广告可减少 5 分钟）", " (বিল্ডিংয়ে ট্যাপ করলে 📺 বিজ্ঞাপন দেখে ৫ মিনিট কমানো যায়)"], "🚧 Connect a Path here": ["🚧 صِل ممرًا هنا", "🚧 Проложите тропу сюда", "🚧 Conecta un sendero aquí", "🚧 यहाँ Path जोड़ें", "🚧 请在此处连接小径", "🚧 এখানে Path জোড়ো"], "🚧 Connect a Path at the 📍 mark (and where 🚶 is stuck) so NPCs can walk": ["🚧 صِل ممرًا عند علامة 📍 (وحيث تعلق 🚶) ليتمكن السكان من المشي", "🚧 Проложите тропу к метке 📍 (и где застрял 🚶), чтобы NPC могли ходить", "🚧 Conecta un sendero en la marca 📍 (y donde 🚶 se atasca) para que los NPC puedan caminar", "🚧 📍 निशान पर (और जहाँ 🚶 अटका है) Path जोड़ें ताकि NPC चल सकें", "🚧 在 📍 标记处（以及 🚶 被卡住的地方）连接小径，NPC 才能行走", "🚧 📍 চিহ্নে (আর 🚶 যেখানে NPC আটকে) Path জুড়ে দাও, তাহলে NPC হাঁটতে পারবে"], "Rahim and Karim are quarreling over a fence. What is your ruling?": ["رحيم وكريم يتشاجران بسبب سياج. ما حكمك؟", "Рахим и Карим ссорятся из-за забора. Каков ваш вердикт?", "Rahim y Karim discuten por una cerca. ¿Cuál es tu veredicto?", "रहीम और करीम बाड़ को लेकर झगड़ रहे हैं। आपका फ़ैसला?", "拉希姆和卡里姆在为篱笆争吵。你怎么判？", "রহিম আর করিম বেড়া নিয়ে ঝগড়া করছে। আপনার রায় কী?"], "Make them settle": ["اجعلهما يتصالحان", "Помирить их", "Haz que se reconcilien", "दोनों में समझौता कराओ", "让他们和解", "দুজনকে আপস করাও"], "Fine both of them": ["غرّم كليهما", "Оштрафовать обоих", "Multa a ambos", "दोनों पर जुर्माना", "两人都罚款", "দুজনকেই জরিমানা"], "Ignore it": ["تجاهل الأمر", "Не обращать внимания", "Ignorarlo", "परवाह मत करो", "不予理会", "পাত্তা দিও না"], "A complaint came in that a shopkeeper is overcharging.": ["وردت شكوى بأن بائعًا يبالغ في الأسعار.", "Поступила жалоба: торговец завышает цены.", "Hay una queja: un tendero cobra de más.", "शिकायत आई है कि एक दुकानदार ज़्यादा दाम ले रहा है।", "有人投诉一位店主乱涨价。", "এক দোকানদার বেশি দাম নিচ্ছে বলে নালিশ এসেছে।"], "Order a price cut": ["أمر بخفض السعر", "Приказать снизить цену", "Ordenar bajar el precio", "दाम घटाने का आदेश", "下令降价", "দাম কমানোর আদেশ"], "Side with the merchant": ["انحز إلى التاجر", "Встать на сторону торговца", "Ponerse del lado del comerciante", "व्यापारी का पक्ष लो", "站在商人一边", "ব্যবসায়ীর পক্ষ নাও"], "Order an investigation": ["أمر بإجراء تحقيق", "Назначить расследование", "Ordenar una investigación", "जाँच करवाओ", "下令调查", "তদন্ত করাও"], "Someone stole a chicken at night!": ["سرق أحدهم دجاجة ليلًا!", "Ночью кто-то украл курицу!", "¡Alguien robó una gallina por la noche!", "रात में किसी ने मुर्गी चुरा ली!", "夜里有人偷了一只鸡！", "রাতে কেউ মুরগি চুরি করেছে!"], "Post a guard": ["عيّن حارسًا", "Выставить охрану", "Poner un guardia", "पहरा बिठाओ", "安排守卫", "পাহারা বসাও"], "Fine the thief": ["غرّم السارق", "Оштрафовать вора", "Multar al ladrón", "चोर पर जुर्माना", "罚款小偷", "চোরকে জরিমানা"], "Let it go": ["دعه يمرّ", "Отпустить", "Dejarlo pasar", "छोड़ दो", "算了", "ছেড়ে দাও"], "The road is too muddy to walk. It needs repair.": ["الطريق موحل ولا يمكن السير فيه. يحتاج إلى إصلاح.", "Дорога размыта грязью, пройти нельзя. Нужен ремонт.", "El camino está tan embarrado que no se puede pasar. Hay que repararlo.", "कीचड़ में रास्ता चलने लायक नहीं। मरम्मत चाहिए।", "道路泥泞难行，需要修缮。", "কাদায় রাস্তা চলা যায় না। মেরামত চাই।"], "Repair now": ["أصلحه الآن", "Починить сейчас", "Reparar ahora", "अभी मरम्मत करो", "马上修", "এখনই মেরামত"], "Will check later": ["سأنظر لاحقًا", "Посмотрю позже", "Lo veré después", "बाद में देखूँगा", "稍后再看", "পরে দেখব"], "Loud music from the neighbour is keeping people awake.": ["موسيقى الجار العالية تمنع الناس من النوم.", "Громкая музыка соседа не даёт спать.", "La música alta del vecino no deja dormir.", "पड़ोसी के गाने की आवाज़ से नींद नहीं आ रही।", "邻居的歌声太吵，大家睡不着。", "প্রতিবেশীর গানের আওয়াজে ঘুম হচ্ছে না।"], "Set quiet hours": ["حدّد أوقات الهدوء", "Установить тихие часы", "Fijar horas de silencio", "समय सीमा तय करो", "规定安静时段", "সময় বেঁধে দাও"], "Issue a fine": ["فرض غرامة", "Выписать штраф", "Poner una multa", "जुर्माना लगाओ", "处以罚款", "জরিমানা করো"], "Nothing": ["لا شيء", "Ничего", "Nada", "कुछ नहीं", "什么也不做", "কিছু না"], "A request came in to hold a fair in the village.": ["وصل طلب لإقامة معرض في القرية.", "Поступила просьба устроить в деревне ярмарку.", "Llegó una solicitud para hacer una feria en el pueblo.", "गाँव में मेला लगाने का आवेदन आया है।", "有人申请在村里办集市。", "গ্রামে মেলা করার আবেদন এসেছে।"], "Allow the fair": ["اسمح بالمعرض", "Разрешить ярмарку", "Permitir la feria", "मेले की अनुमति दो", "批准集市", "মেলার অনুমতি দাও"], "Too expensive, no": ["مكلف جدًا، لا", "Слишком дорого, нет", "Muy caro, no", "खर्च ज़्यादा है, नहीं", "太贵了，不行", "খরচ বেশি, না"], "Two farmers are quarreling over a land boundary.": ["مزارعان يتشاجران بسبب حدود الأرض.", "Два фермера спорят о границе участка.", "Dos agricultores discuten por el límite de una parcela.", "दो किसान ज़मीन की सीमा को लेकर झगड़ रहे हैं।", "两位农民在为地界争吵。", "দুই কৃষক জমির সীমানা নিয়ে ঝগড়া করছে।"], "Order a survey": ["أمر بمسح الأرض", "Назначить замер", "Ordenar una medición", "नाप-जोख करवाओ", "下令测量", "মাপজোখ করাও"], "Fine both farmers": ["غرّم المزارعَين", "Оштрафовать обоих фермеров", "Multa a ambos agricultores", "दोनों किसानों पर जुर्माना", "两位农民都罚款", "দুজনকে জরিমানা"], "Avoid it": ["تجنّب الأمر", "Уклониться", "Esquivarlo", "टाल दो", "回避", "এড়িয়ে যাও"], "The roads are very dark at night. Lamps needed!": ["الطرق مظلمة جدًا ليلًا. نحتاج إلى مصابيح!", "Ночью дороги очень тёмные. Нужны фонари!", "Las calles están muy oscuras de noche. ¡Hacen falta farolas!", "रात में रास्ते बहुत अंधेरे हैं। बत्ती चाहिए!", "夜里道路很黑，需要路灯！", "রাতে রাস্তা খুব অন্ধকার। বাতি চাই!"], "Order lamps installed": ["أمر بتركيب المصابيح", "Приказать установить фонари", "Ordenar instalar farolas", "बत्ती लगाने का आदेश", "下令安装路灯", "বাতি লাগানোর আদেশ"], "There is not a single shop in the village! Where do we buy things?": ["لا يوجد أي متجر في القرية! من أين نشتري؟", "В деревне нет ни одного магазина! Где нам покупать?", "¡No hay ni una tienda en el pueblo! ¿Dónde compramos?", "गाँव में एक भी दुकान नहीं! खरीदें कहाँ?", "村里连一家商店都没有！去哪里买东西？", "গ্রামে একটাও দোকান নেই! কিনব কোথায়?"], "Announce building a market": ["أعلن عن بناء سوق", "Объявить о строительстве рынка", "Anunciar la construcción de un mercado", "बाज़ार बनाने की घोषणा", "宣布建造市场", "বাজার বানানোর ঘোষণা"], "Not my problem!": ["ليس من شأني!", "Меня это не касается!", "¡No es mi problema!", "मुझे क्या!", "关我什么事！", "আমার কী!"], "Verdict given ✔": ["تم إصدار الحكم ✔", "Решение вынесено ✔", "Veredicto dictado ✔", "फ़ैसला सुना दिया गया ✔", "已裁决 ✔", "রায় দেওয়া হলো ✔"], "Later": ["لاحقًا", "Позже", "Después", "बाद में", "稍后", "পরে"], " construction finished!": [" اكتمل البناء!", " строительство завершено!", " ¡construcción terminada!", " का निर्माण पूरा!", " 建造完成！", " তৈরি শেষ!"], "Complaint ignored ⭐-3": ["تم تجاهل الشكوى ⭐-3", "Жалоба проигнорирована ⭐-3", "Queja ignorada ⭐-3", "शिकायत अनदेखी ⭐-3", "投诉被忽视 ⭐-3", "নালিশ অবহেলিত ⭐-3"], "🔒 This land is not bought — first buy 🗺️ Land (more land as you level up), then you can cut trees": ["🔒 لم تُشترَ هذه الأرض — اشترِ 🗺️ Land أولًا (أرض أكبر مع ارتفاع المستوى) ثم يمكنك قطع الأشجار", "🔒 Эта земля не куплена — сначала купите 🗺️ Land (больше земли с ростом уровня), потом можно рубить деревья", "🔒 Este terreno no está comprado — primero compra 🗺️ Land (más terreno al subir de nivel), luego podrás talar árboles", "🔒 यह ज़मीन नहीं खरीदी — पहले 🗺️ Land खरीदें (लेवल बढ़ने पर और ज़मीन), फिर पेड़ काट सकेंगे", "🔒 这块土地尚未购买 — 请先购买 🗺️ Land（升级后可买更多土地），然后才能砍树", "🔒 এই জমি কেনা হয়নি — আগে 🗺️ Land কেনো (লেভেল বাড়লে আরও জমি), তারপর গাছ কাটতে পারবে"], "🌳 Cut this tree?\nCost: 🪙": ["🌳 هل تقطع الشجرة؟\nالتكلفة: 🪙", "🌳 Срубить дерево?\nЦена: 🪙", "🌳 ¿Talar el árbol?\nCoste: 🪙", "🌳 पेड़ काटेंगे?\nखर्च: 🪙", "🌳 要砍树吗？\n费用：🪙", "🌳 গাছ কাটবে?\nখরচ: 🪙"], "\n(the more trees you cut, the higher the price)": ["\n(كلما قطعت أشجارًا أكثر، ارتفع السعر)", "\n(чем больше деревьев, тем выше цена)", "\n(cuantos más árboles talas, más sube el precio)", "\n(जितने पेड़ काटोगे, दाम उतना बढ़ेगा)", "\n（砍得越多，价格越高）", "\n(যত গাছ কাটবে, দাম তত বাড়বে)"], "Cut 🪙": ["اقطع 🪙", "Срубить 🪙", "Talar 🪙", "काटो 🪙", "砍 🪙", "কাটো 🪙"], "Never mind": ["لا بأس", "Отмена", "Mejor no", "रहने दो", "算了", "থাক"], "This cannot be rotated": ["لا يمكن تدوير هذا", "Это нельзя повернуть", "Esto no se puede girar", "इसे घुमाया नहीं जा सकता", "这个无法旋转", "এটা ঘোরানো যায় না"], "No room to rotate ✖": ["لا توجد مساحة للتدوير ✖", "Нет места для поворота ✖", "No hay espacio para girar ✖", "घुमाने की जगह नहीं ✖", "没有空间旋转 ✖", "ঘোরানোর জায়গা নেই ✖"], "📺 Loading ad…": ["📺 جارٍ تحميل الإعلان…", "📺 Загрузка рекламы…", "📺 Cargando anuncio…", "📺 विज्ञापन लोड हो रहा है…", "📺 广告加载中…", "📺 বিজ্ঞাপন লোড হচ্ছে…"], "📺 Ad skips for today are used up (": ["📺 انتهت مرات تخطي الإعلانات اليوم (", "📺 Пропуски по рекламе на сегодня закончились (", "📺 Se acabaron los saltos con anuncio de hoy (", "📺 आज के विज्ञापन-स्किप खत्म (", "📺 今日广告加速次数已用完（", "📺 আজকের বিজ্ঞাপন-স্কিপ শেষ ("], ") — come back tomorrow": [") — عد غدًا", ") — приходите завтра", ") — vuelve mañana", ") — कल फिर मिलेगा", ")— 明天再来", "টি) — কাল আবার পাবে"], "⏳ Next ad in ": ["⏳ الإعلان التالي بعد ", "⏳ Следующая реклама через ", "⏳ Próximo anuncio en ", "⏳ अगला विज्ञापन ", "⏳ 下一个广告在 ", "⏳ পরের বিজ্ঞাপন "], " seconds": [" ثانية", " сек.", " segundos", " सेकंड बाद", " 秒后", " সেকেন্ড পরে"], "Ads are not available right now": ["الإعلانات غير متاحة الآن", "Реклама сейчас недоступна", "Los anuncios no están disponibles ahora", "अभी विज्ञापन उपलब्ध नहीं हैं", "暂时没有可用的广告", "বিজ্ঞাপন এখন পাওয়া যাচ্ছে না"], "🌙 It is night.\n📺 Watch one ad and morning comes right away.\n(If you do not watch, morning will come by itself)": ["🌙 الآن ليل.\n📺 شاهد إعلانًا واحدًا ليحلّ الصباح فورًا.\n(إن لم تشاهد، سيأتي الصباح من تلقاء نفسه)", "🌙 Сейчас ночь.\n📺 Посмотрите одну рекламу — и сразу наступит утро.\n(Если не смотреть, утро придёт само)", "🌙 Es de noche.\n📺 Mira un anuncio y amanece al instante.\n(Si no lo ves, amanecerá solo)", "🌙 अभी रात है।\n📺 एक विज्ञापन देखें तो सीधे सुबह हो जाएगी।\n(न देखें तो सुबह अपने आप होगी)", "🌙 现在是夜晚。\n📺 看一个广告，立刻天亮。\n（不看的话，天也会自己亮）", "🌙 এখন রাত।\n📺 একটা বিজ্ঞাপন দেখলে সরাসরি সকাল হয়ে যাবে।\n(না দেখলে নিজে নিজেই সকাল হবে)"], "📺 Watch an ad for morning": ["📺 شاهد إعلانًا للصباح", "📺 Посмотреть рекламу — утро", "📺 Ver anuncio para amanecer", "📺 विज्ञापन देखकर सुबह करो", "📺 看广告变早晨", "📺 বিজ্ঞাপন দেখে সকাল করো"], "🌅 Morning is coming…": ["🌅 الصباح قادم…", "🌅 Наступает утро…", "🌅 Amanece…", "🌅 सुबह हो रही है…", "🌅 天快亮了…", "🌅 সকাল হচ্ছে…"], "I will wait": ["سأنتظر", "Подожду", "Esperaré", "इंतज़ार करूँगा", "我等一等", "অপেক্ষা করব"], "☀ It is day — night comes in about ": ["☀ الآن نهار — يحلّ الليل بعد حوالي ", "☀ Сейчас день — ночь наступит примерно через ", "☀ Es de día — la noche llega en unos ", "☀ अभी दिन है — रात होने में लगभग ", "☀ 现在是白天 — 大约 ", "☀ এখন দিন — রাত হতে প্রায় "], " minutes (when it is night you can watch an ad to make it morning)": [" دقيقة (في الليل يمكنك مشاهدة إعلان ليصبح صباحًا)", " мин. (ночью можно посмотреть рекламу, чтобы наступило утро)", " minutos (de noche puedes ver un anuncio para que amanezca)", " मिनट (रात में विज्ञापन देखकर सुबह कर सकते हैं)", " 分钟后天黑（夜里可看广告变成早晨）", " মিনিট (রাত হলে বিজ্ঞাপন দেখে সকাল করা যাবে)"], "⛏ Mining in progress, remaining ": ["⛏ التعدين جارٍ، المتبقي ", "⛏ Добыча идёт, осталось ", "⛏ Minería en curso, faltan ", "⛏ खनन जारी है, बाकी ", "⛏ 挖矿中，剩余 ", "⛏ খনন চলছে, বাকি "], "Ad not available, please try again a bit later": ["الإعلان غير متاح، حاول مجددًا بعد قليل", "Реклама недоступна, попробуйте чуть позже", "Anuncio no disponible, inténtalo de nuevo en un momento", "विज्ञापन नहीं मिला, थोड़ी देर बाद फिर कोशिश करें", "暂无广告，请稍后再试", "বিজ্ঞাপন পাওয়া যায়নি, একটু পরে আবার চেষ্টা করো"], " GM$ claimed! Mining restarted": [" GM$ تمت المطالبة! أُعيد التعدين", " GM$ получено! Добыча возобновлена", " ¡GM$ reclamados! Minería reiniciada", " GM$ क्लेम हुआ! खनन फिर शुरू", " GM$ 已领取！挖矿重新开始", " GM$ ক্লেইম! খনন আবার চালু"], "Claim failed, please try again": ["فشلت المطالبة، حاول مجددًا", "Не удалось получить, попробуйте снова", "No se pudo reclamar, inténtalo de nuevo", "क्लेम नहीं हुआ, फिर कोशिश करें", "领取失败，请重试", "ক্লেইম হয়নি, আবার চেষ্টা করো"], " is being built\nRemaining: ": [" قيد البناء\nالمتبقي: ", " строится\nОсталось: ", " en construcción\nFaltan: ", " बन रहा है\nबाकी: ", " 建造中\n剩余：", " তৈরি হচ্ছে\nবাকি: "], "📺 Watch an ad to cut 5 minutes": ["📺 شاهد إعلانًا لتقليل 5 دقائق", "📺 Посмотреть рекламу: −5 минут", "📺 Ver un anuncio para ahorrar 5 minutos", "📺 विज्ञापन देखकर 5 मिनट घटाओ", "📺 看广告减少 5 分钟", "📺 বিজ্ঞাপন দেখে ৫ মিনিট কমাও"], "⏩ 5 minutes saved": ["⏩ تم توفير 5 دقائق", "⏩ Сэкономлено 5 минут", "⏩ 5 minutos ahorrados", "⏩ 5 मिनट घट गए", "⏩ 已减少 5 分钟", "⏩ ৫ মিনিট কমল"], "⏩ Finish now 🪙": ["⏩ أنهِ الآن 🪙", "⏩ Завершить сейчас 🪙", "⏩ Terminar ya 🪙", "⏩ अभी पूरा करो 🪙", "⏩ 立即完成 🪙", "⏩ এখনই শেষ 🪙"], "Mining in progress, batch finishes in ": ["التعدين جارٍ، تنتهي الدفعة بعد ", "Добыча идёт, партия завершится через ", "Minería en curso, el lote termina en ", "खनन जारी है, बैच खत्म होने में ", "挖矿中，本批次还需 ", "খনন চলছে, ব্যাচ শেষ হতে "], "✅ Mining done! 💠 GM$ ready — watch an ad to claim and restart": ["✅ انتهى التعدين! 💠 GM$ جاهزة — شاهد إعلانًا للمطالبة وإعادة التشغيل", "✅ Добыча завершена! 💠 GM$ готовы — посмотрите рекламу, чтобы получить и перезапустить", "✅ ¡Minería terminada! 💠 GM$ listos — mira un anuncio para reclamar y reiniciar", "✅ खनन पूरा! 💠 GM$ तैयार — विज्ञापन देखकर क्लेम करें, खनन फिर शुरू होगा", "✅ 挖矿完成！💠 GM$ 已就绪 — 看广告领取并重新开始", "✅ খনন শেষ! 💠 GM$ তৈরি — বিজ্ঞাপন দেখে ক্লেইম করলে আবার চালু হবে"], "⛏ Mine\n": ["⛏ المنجم\n", "⛏ Шахта\n", "⛏ Mina\n", "⛏ खदान\n", "⛏ 矿场\n", "⛏ খনি\n"], "\nEvery 2 hours 20–40 GM$ (the exact number is decided by the server).": ["\nكل ساعتين 20–40 GM$ (الرقم الفعلي يحدده الخادم).", "\nКаждые 2 часа 20–40 GM$ (точное число определяет сервер).", "\nCada 2 horas 20–40 GM$ (la cifra exacta la decide el servidor).", "\nहर 2 घंटे में 20–40 GM$ (असली संख्या सर्वर तय करता है)।", "\n每 2 小时 20–40 GM$（具体数量由服务器决定）。", "\nপ্রতি ২ ঘণ্টায় ২০–৪০ GM$ (আসল সংখ্যা সার্ভার ঠিক করে)।"], "📺 Watch an ad and claim": ["📺 شاهد إعلانًا وطالب", "📺 Посмотреть рекламу и получить", "📺 Ver anuncio y reclamar", "📺 विज्ञापन देखकर क्लेम करो", "📺 看广告并领取", "📺 বিজ্ঞাপন দেখে ক্লেইম"], "OK": ["حسنًا", "Хорошо", "Vale", "ठीक है", "好的", "ঠিক আছে"], "Close": ["إغلاق", "Закрыть", "Cerrar", "बंद करो", "关闭", "বন্ধ"], "🚢 Imported goods arrived by ship! All shop stocks increased, port duty collected": ["🚢 وصلت بضائع مستوردة بالسفينة! زاد مخزون كل المتاجر وتم تحصيل رسوم الميناء", "🚢 Корабль привёз импортные товары! Запасы всех магазинов выросли, в порту собраны пошлины", "🚢 ¡Llegaron mercancías importadas en barco! Aumentó el stock de todas las tiendas y se cobraron aranceles en el puerto", "🚢 जहाज़ से आयातित माल आया! सभी दुकानों का स्टॉक बढ़ा, बंदरगाह पर शुल्क जमा हुआ", "🚢 进口货物由船运到！所有商店库存增加，港口关税已入账", "🚢 জাহাজে আমদানি মাল এসেছে! সব দোকানের স্টক বাড়ল, বন্দরে শুল্ক জমেছে"], "🏪 Shops": ["🏪 متاجر", "🏪 Магазины", "🏪 Tiendas", "🏪 दुकानें", "🏪 商店", "🏪 দোকান"], "💧 Water (build a Well)": ["💧 الماء (ابنِ بئرًا)", "💧 Вода (постройте колодец)", "💧 Agua (construye un pozo)", "💧 पानी (Well बनाओ)", "💧 水（建一口水井）", "💧 পানি (Well বানাও)"], "💡 Lamps": ["💡 مصابيح", "💡 Фонари", "💡 Farolas", "💡 बत्ती", "💡 路灯", "💡 বাতি"], "⚡ Electricity (build a Power Pole)": ["⚡ الكهرباء (ابنِ عمود كهرباء)", "⚡ Электричество (постройте столб)", "⚡ Electricidad (construye un poste)", "⚡ बिजली (Power Pole बनाओ)", "⚡ 电力（建一根电线杆）", "⚡ বিদ্যুৎ (Power Pole বানাও)"], "🪑 Benches / ⛲ Fountain": ["🪑 مقاعد / ⛲ نافورة", "🪑 Скамейки / ⛲ Фонтан", "🪑 Bancos / ⛲ Fuente", "🪑 बेंच / ⛲ फ़ोवारा", "🪑 长椅 / ⛲ 喷泉", "🪑 বেঞ্চ/⛲ ফোয়ারা"], "🥚 Farm": ["🥚 مزرعة", "🥚 Ферма", "🥚 Granja", "🥚 फ़ार्म", "🥚 农场", "🥚 খামার"], "😟 NPCs want: ": ["😟 السكان يريدون: ", "😟 NPC хотят: ", "😟 Los NPC quieren: ", "😟 NPC चाहते हैं: ", "😟 NPC 想要：", "😟 NPC চায়: "], "Health": ["الصحة", "Здоровье", "Salud", "स्वास्थ्य", "健康", "স্বাস্থ্য"], "Happy": ["سعادة", "Счастье", "Felicidad", "खुशी", "快乐", "খুশি"], "Needs": ["الاحتياجات", "Нужды", "Necesidades", "ज़रूरतें", "需求", "চাহিদা"], "Water": ["الماء", "Вода", "Agua", "पानी", "水", "পানি"], "Power": ["الكهرباء", "Энергия", "Energía", "बिजली", "电力", "বিদ্যুৎ"], "🏝 Island status\n👥 NPCs: ": ["🏝 حالة الجزيرة\n👥 السكان: ", "🏝 Состояние острова\n👥 NPC: ", "🏝 Estado de la isla\n👥 NPC: ", "🏝 आइलैंड स्टेटस\n👥 NPC: ", "🏝 岛屿状态\n👥 NPC：", "🏝 আইল্যান্ড স্ট্যাটাস\n👥 NPC: "], " · 🏠 Houses: ": [" · 🏠 المنازل: ", " · 🏠 Дома: ", " · 🏠 Casas: ", " · 🏠 घर: ", " · 🏠 房屋：", " জন · 🏠 ঘর: "], "\n❤️ Average health: ": ["\n❤️ متوسط الصحة: ", "\n❤️ Среднее здоровье: ", "\n❤️ Salud media: ", "\n❤️ औसत स्वास्थ्य: ", "\n❤️ 平均健康：", "\n❤️ গড় স্বাস্থ্য: "], " sick)": [" مريض)", " больных)", " enfermos)", " बीमार)", " 人生病)", " অসুস্থ)"], "\n😊 Happy: ": ["\n😊 السعادة: ", "\n😊 Счастье: ", "\n😊 Felicidad: ", "\n😊 खुशी: ", "\n😊 快乐：", "\n😊 খুশি: "], "%\n📋 Needs met: ": ["%\n📋 تلبية الاحتياجات: ", "%\n📋 Нужды удовлетворены: ", "%\n📋 Necesidades cubiertas: ", "%\n📋 ज़रूरतें पूरी: ", "%\n📋 需求满足：", "%\n📋 চাহিদা পূরণ: "], "\n💧 Water: ": ["\n💧 الماء: ", "\n💧 Вода: ", "\n💧 Agua: ", "\n💧 पानी: ", "\n💧 水：", "\n💧 পানি: "], " — each serves 4 houses)\n⚡ Electricity: ": [" — كل بئر تخدم 4 منازل)\n⚡ الكهرباء: ", " — каждый обслуживает 4 дома)\n⚡ Электричество: ", " — cada uno atiende 4 casas)\n⚡ Electricidad: ", " — हर एक 4 घरों को देता है)\n⚡ बिजली: ", " — 每口供 4 户)\n⚡ 电力：", "টি, একটিতে ৪ ঘর)\n⚡ বিদ্যুৎ: "], " — each serves 6 houses)": [" — كل عمود يخدم 6 منازل)", " — каждый обслуживает 6 домов)", " — cada uno atiende 6 casas)", " — हर एक 6 घरों को देता है)", " — 每根供 6 户)", "টি, একটিতে ৬ ঘর)"], "\n\n😟 Missing: ": ["\n\n😟 الناقص: ", "\n\n😟 Не хватает: ", "\n\n😟 Falta: ", "\n\n😟 बाकी: ", "\n\n😟 缺少：", "\n\n😟 বাকি: "], "\n\n✅ All needs met!": ["\n\n✅ كل الاحتياجات ملبّاة!", "\n\n✅ Все нужды удовлетворены!", "\n\n✅ ¡Todas las necesidades cubiertas!", "\n\n✅ सभी ज़रूरतें पूरी!", "\n\n✅ 所有需求已满足！", "\n\n✅ সব চাহিদা পূরণ!"], "\n\nBuild houses first": ["\n\nابنِ المنازل أولًا", "\n\nСначала постройте дома", "\n\nPrimero construye casas", "\n\nपहले घर बनाओ", "\n\n请先建房子", "\n\nআগে ঘর বানাও"], "👷 Builders: ": ["👷 العمال: ", "👷 Строители: ", "👷 Constructores: ", "👷 बिल्डर: ", "👷 建筑工：", "👷 বিল্ডার: "], " (busy ": [" (مشغول ", " (заняты ", " (ocupados ", " (व्यस्त ", " (忙碌 ", " জন (ব্যস্ত "], "\n⏳ Waiting in line: ": ["\n⏳ في قائمة الانتظار: ", "\n⏳ В очереди: ", "\n⏳ En cola: ", "\n⏳ कतार में इंतज़ार: ", "\n⏳ 排队等待：", "\n⏳ লাইনে অপেক্ষায়: "], " building(s)": [" مبنى", " зд.", " edificio(s)", " बिल्डिंग", " 栋", "টি"], "\n\nEach builder works on one building at a time.\n1st: from the start · 2nd: Lv10 · 3rd: Lv20 · 4th: Lv40": ["\n\nكل عامل يبني مبنى واحدًا في كل مرة.\nالأول: من البداية · الثاني: Lv10 · الثالث: Lv20 · الرابع: Lv40", "\n\nКаждый строитель строит по одному зданию.\n1-й: с начала · 2-й: Lv10 · 3-й: Lv20 · 4-й: Lv40", "\n\nCada constructor trabaja en un edificio a la vez.\n1.º: desde el inicio · 2.º: Lv10 · 3.º: Lv20 · 4.º: Lv40", "\n\nहर बिल्डर एक समय में एक बिल्डिंग बनाता है।\n1ला: शुरू से · 2रा: Lv10 · 3रा: Lv20 · 4था: Lv40", "\n\n每位建筑工同一时间只建一栋建筑。\n第1位：开局 · 第2位：Lv10 · 第3位：Lv20 · 第4位：Lv40", "\n\nপ্রতিটি বিল্ডার একবারে একটি বিল্ডিং বানায়।\n১ম: শুরুতেই · ২য়: Lv10 · ৩য়: Lv20 · ৪র্থ: Lv40"], "\n\nNext builder: Level ": ["\n\nالعامل التالي: المستوى ", "\n\nСледующий строитель: уровень ", "\n\nSiguiente constructor: nivel ", "\n\nअगला बिल्डर: Level ", "\n\n下一位建筑工：等级 ", "\n\nপরের বিল্ডার: Level "], "\n\n🏆 All builders unlocked!": ["\n\n🏆 تم فتح كل العمال!", "\n\n🏆 Все строители открыты!", "\n\n🏆 ¡Todos los constructores desbloqueados!", "\n\n🏆 सभी बिल्डर अनलॉक!", "\n\n🏆 全部建筑工已解锁！", "\n\n🏆 সব বিল্ডার আনলক!"], "👮 The police caught the thief!": ["👮 قبضت الشرطة على اللص!", "👮 Полиция поймала вора!", "👮 ¡La policía atrapó al ladrón!", "👮 पुलिस ने चोर पकड़ लिया!", "👮 警察抓住了小偷！", "👮 পুলিশ চোর ধরেছে!"], "🚒 The fire is out!": ["🚒 تم إخماد الحريق!", "🚒 Пожар потушен!", "🚒 ¡El incendio está apagado!", "🚒 आग बुझ गई!", "🚒 火已扑灭！", "🚒 আগুন নিভেছে!"], "🚑 The patient is at the hospital, recovering!": ["🚑 المريض في المستشفى ويتعافى!", "🚑 Больной в больнице и выздоравливает!", "🚑 ¡El paciente está en el hospital y se recupera!", "🚑 मरीज़ अस्पताल में है, ठीक हो रहा है!", "🚑 病人已送医，正在康复！", "🚑 রোগী হাসপাতালে, সুস্থ হচ্ছে!"], "🦹 A thief stole 🪙": ["🦹 سرق لص 🪙", "🦹 Вор украл 🪙", "🦹 Un ladrón robó 🪙", "🦹 चोर 🪙", "🦹 小偷偷走了 🪙", "🦹 চোর 🪙"], " and escaped! ⭐ dropped (build a Police Station)": [" وهرب! ⭐ انخفض (ابنِ مركز شرطة)", " и скрылся! ⭐ упало (постройте полицейский участок)", " y escapó! ⭐ bajó (construye una comisaría)", " लेकर भाग गया! ⭐ घटा (पुलिस स्टेशन बनाओ)", " 并逃跑！⭐ 下降（请建警察局）", " নিয়ে পালিয়েছে! ⭐ কমল (পুলিশ স্টেশন বানাও)"], "🔥 A house burned down! 🪙-": ["🔥 احترق منزل! 🪙-", "🔥 Дом сгорел! 🪙-", "🔥 ¡Una casa se quemó! 🪙-", "🔥 घर जल गया! 🪙-", "🔥 房子烧毁了！🪙-", "🔥 ঘর পুড়েছে! 🪙-"], " (build a Fire Station)": [" (ابنِ محطة إطفاء)", " (постройте пожарную станцию)", " (construye un parque de bomberos)", " (फायर स्टेशन बनाओ)", " （请建消防站）", " (ফায়ার স্টেশন বানাও)"], "🤒 A patient is suffering! ⭐ dropped (build a Hospital)": ["🤒 مريض يعاني! ⭐ انخفض (ابنِ مستشفى)", "🤒 Больной страдает! ⭐ упало (постройте больницу)", "🤒 ¡Un paciente sufre! ⭐ bajó (construye un hospital)", "🤒 मरीज़ तकलीफ़ में है! ⭐ घटा (अस्पताल बनाओ)", "🤒 病人在受苦！⭐ 下降（请建医院）", "🤒 রোগী ভুগছে! ⭐ কমল (হাসপাতাল বানাও)"], "🦹 A thief broke into a house!": ["🦹 دخل لص إلى منزل!", "🦹 Вор залез в дом!", "🦹 ¡Un ladrón entró en una casa!", "🦹 घर में चोर घुस आया!", "🦹 小偷闯进了房子！", "🦹 ঘরে চোর ঢুকেছে!"], "🔥 A house is on fire!": ["🔥 منزل يحترق!", "🔥 Дом горит!", "🔥 ¡Una casa está en llamas!", "🔥 घर में आग लगी है!", "🔥 房子着火了！", "🔥 ঘরে আগুন লেগেছে!"], "🤒 Someone has fallen sick!": ["🤒 أحدهم مرض!", "🤒 Кто-то заболел!", "🤒 ¡Alguien se ha enfermado!", "🤒 कोई बीमार हो गया है!", "🤒 有人生病了！", "🤒 কেউ অসুস্থ হয়েছে!"], "👷 New builder (": ["👷 عامل جديد (", "👷 Новый строитель (", "👷 Nuevo constructor (", "👷 नया बिल्डर (", "👷 新建筑工（", "👷 নতুন বিল্ডার ("], " total)": [" إجمالًا)", " всего)", " en total)", " कुल)", " 人）", " জন)"], "🗺️ New land (Land button)": ["🗺️ أرض جديدة (زر Land)", "🗺️ Новая земля (кнопка Land)", "🗺️ Nuevo terreno (botón Land)", "🗺️ नई ज़मीन (Land बटन)", "🗺️ 新土地（Land 按钮）", "🗺️ নতুন জমি (Land বাটন)"], "Unlocked: ": ["تم الفتح: ", "Открыто: ", "Desbloqueado: ", "अनलॉक: ", "已解锁：", "আনলক: "], " reward\n📈 Income +": [" مكافأة\n📈 الدخل +", " награда\n📈 Доход +", " recompensa\n📈 Ingresos +", " इनाम\n📈 आय +", " 奖励\n📈 收入 +", " পুরস্কার\n📈 আয় +"], "\n🏆 Max level!": ["\n🏆 أعلى مستوى!", "\n🏆 Максимальный уровень!", "\n🏆 ¡Nivel máximo!", "\n🏆 अधिकतम लेवल!", "\n🏆 满级！", "\n🏆 সর্বোচ্চ লেভেল!"], "Awesome!": ["رائع!", "Отлично!", "¡Genial!", "शानदार!", "太棒了！", "দারুণ!"], "Nothing to buy here": ["لا يوجد شيء لشرائه هنا", "Здесь нечего покупать", "No hay nada que comprar aquí", "यहाँ खरीदने लायक कुछ नहीं", "这里没有可买的东西", "এখানে কেনার মতো কিছু নেই"], "🚫 Walking Path limit ": ["🚫 حد الممرات ", "🚫 Лимит троп ", "🚫 Límite de senderos ", "🚫 Path की सीमा ", "🚫 小径上限 ", "🚫 হাঁটার Path-এর সীমা "], " tiles (now ": [" بلاطة (الآن ", " клеток (сейчас ", " casillas (ahora ", " टाइल (अभी ", " 格（现在 ", " টাইল (এখন "], ") — level up to raise the limit": [") — ارفع مستواك لزيادة الحد", ") — повысьте уровень, чтобы увеличить лимит", ") — sube de nivel para aumentar el límite", ") — लेवल बढ़ाने पर सीमा बढ़ेगी", ") — 升级可提高上限", ") — লেভেল বাড়ালে সীমা বাড়বে"], "Not enough coins 🪙 need ": ["عملات غير كافية 🪙 المطلوب ", "Не хватает монет 🪙 нужно ", "Faltan monedas 🪙 necesitas ", "सिक्के कम 🪙 चाहिए ", "金币不足 🪙 需要 ", "কয়েন কম 🪙 দরকার "], "Road bought ✔": ["تم شراء الطريق ✔", "Дорога куплена ✔", "Carretera comprada ✔", "सड़क खरीदी गई ✔", "已购买道路 ✔", "রাস্তা কেনা হলো ✔"], " red tiles were skipped": [" بلاطات حمراء تم تخطيها", " красных клеток пропущено", " casillas rojas omitidas", " लाल टाइल छूट गईं", " 个红色格子被跳过", "টি লাল টাইল বাদ গেছে"], " (no refund, 🚜 needed to demolish)": [" (بلا استرداد، تحتاج 🚜 للهدم)", " (без возврата, для сноса нужен 🚜)", " (sin reembolso, se necesita 🚜 para demoler)", " (वापसी नहीं, तोड़ने के लिए 🚜 चाहिए)", " （不退款，拆除需要 🚜）", " (ফেরত নেই, ভাঙতে 🚜 লাগবে)"], " demolish?\nCost 🪙": [" هدم؟\nالتكلفة 🪙", " снести?\nЦена 🪙", " ¿demoler?\nCoste 🪙", " तोड़ोगे?\nखर्च 🪙", " 拆除吗？\n费用 🪙", " ভাঙবে?\nখরচ 🪙"], " (no refund at all)": [" (بلا أي استرداد)", " (без какого-либо возврата)", " (sin reembolso)", " (कोई वापसी नहीं)", " （完全不退款）", " (কোনো ফেরত নেই)"], "Demolish 🪙": ["اهدم 🪙", "Снести 🪙", "Demoler 🪙", "तोड़ो 🪙", "拆除 🪙", "ভাঙো 🪙"], "Offline income while away +": ["دخل أثناء غيابك +", "Доход за время отсутствия +", "Ingresos mientras no estabas +", "वापस आने पर ऑफ़लाइन आय +", "离线收入 +", "ফিরে আসায় অফলাইন আয় +"], "This small piece of land is yours! Buy more 🗺️ Land as you level up. First 🛣️ roads, 🏠 houses, then 🏪 shops": ["هذه القطعة الصغيرة ملكك! اشترِ المزيد من 🗺️ Land مع ارتفاع المستوى. أولًا 🛣️ الطرق، 🏠 المنازل، ثم 🏪 المتاجر", "Этот небольшой участок ваш! Покупайте больше 🗺️ Land с ростом уровня. Сначала 🛣️ дороги, 🏠 дома, потом 🏪 магазины", "¡Este pequeño terreno es tuyo! Compra más 🗺️ Land al subir de nivel. Primero 🛣️ caminos, 🏠 casas, luego 🏪 tiendas", "यह छोटी-सी ज़मीन तुम्हारी है! लेवल बढ़ने पर 🗺️ Land से और ज़मीन खरीदो। पहले 🛣️ सड़क, 🏠 घर, फिर 🏪 दुकान बनाओ", "这块小土地是你的！升级后可用 🗺️ Land 购买更多土地。先建 🛣️ 道路、🏠 房屋，再建 🏪 商店", "এই ছোট জমিটুকু তোমার! 🗺️ Land দিয়ে লেভেল বাড়লে আরও জমি কেনো। আগে 🛣️ রাস্তা, 🏠 ঘর, তারপর 🏪 দোকান বানাও"], "No complaints right now 🙂": ["لا توجد شكاوى الآن 🙂", "Сейчас жалоб нет 🙂", "Ahora no hay quejas 🙂", "अभी कोई शिकायत नहीं 🙂", "现在没有投诉 🙂", "এখন কোনো নালিশ নেই 🙂"], "🏆 The whole island is yours!": ["🏆 الجزيرة كلها لك!", "🏆 Весь остров ваш!", "🏆 ¡Toda la isla es tuya!", "🏆 पूरा द्वीप तुम्हारा है!", "🏆 整座岛都是你的！", "🏆 পুরো দ্বীপ তোমার!"], "🔒 The next land unlocks at Level ": ["🔒 تُفتح الأرض التالية عند المستوى ", "🔒 Следующая земля откроется на уровне ", "🔒 El siguiente terreno se abre en el nivel ", "🔒 अगली ज़मीन Level ", "🔒 下一块土地需要等级 ", "🔒 পরের জমি Level "], "\n(you are now Level ": ["\n(أنت الآن في المستوى ", "\n(сейчас у вас уровень ", "\n(ahora estás en el nivel ", " पर खुलेगी\n(अभी Level ", "\n(你现在是等级 ", " এ কেনা যাবে\n(এখন Level "], ")\nLand size: ": [")\nحجم الأرض: ", ")\nРазмер земли: ", ")\nTamaño del terreno: ", ")\nज़मीन का आकार: ", ")\n土地大小：", ")\nজমির মাপ: "], "🗺️ Expand your land?\nSize: ": ["🗺️ هل توسّع أرضك؟\nالحجم: ", "🗺️ Расширить участок?\nРазмер: ", "🗺️ ¿Ampliar tu terreno?\nTamaño: ", "🗺️ ज़मीन बढ़ाओगे?\nआकार: ", "🗺️ 要扩展土地吗？\n大小：", "🗺️ জমি বাড়াবে?\nমাপ: "], "\nCost: 🪙": ["\nالتكلفة: 🪙", "\nЦена: 🪙", "\nCoste: 🪙", "\nखर्च: 🪙", "\n费用：🪙", "\nখরচ: 🪙"], "\n(you will be able to cut trees on the new land too)": ["\n(ستتمكن من قطع أشجار الأرض الجديدة أيضًا)", "\n(на новой земле можно будет рубить деревья)", "\n(también podrás talar árboles del nuevo terreno)", "\n(नई ज़मीन के पेड़ भी तब काट सकोगे)", "\n（新土地上的树也可以砍）", "\n(নতুন জমির গাছও তখন কাটতে পারবে)"], "Buy 🪙": ["اشترِ 🪙", "Купить 🪙", "Comprar 🪙", "खरीदो 🪙", "购买 🪙", "কেনো 🪙"], "🗺️ New land bought!": ["🗺️ تم شراء أرض جديدة!", "🗺️ Новая земля куплена!", "🗺️ ¡Nuevo terreno comprado!", "🗺️ नई ज़मीन खरीदी गई!", "🗺️ 已购买新土地！", "🗺️ নতুন জমি কেনা হলো!"], " needed to unlock": [" مطلوب للفتح", " нужен для открытия", " necesario para desbloquear", " पर अनलॉक होगा", " 解锁", " এ আনলক হবে"], "Drag to set the road direction, then press ✔ (a bought road cannot be refunded)": ["اسحب لتحديد اتجاه الطريق ثم اضغط ✔ (الطريق المشترى لا يُسترد)", "Проведите пальцем, задав направление дороги, затем нажмите ✔ (купленная дорога не возвращается)", "Arrastra para fijar la dirección de la carretera y pulsa ✔ (una carretera comprada no se reembolsa)", "उंगली खींचकर सड़क की दिशा तय करो, फिर ✔ दबाओ (खरीदी सड़क वापस नहीं होती)", "拖动设置道路方向，然后点 ✔（已买的道路不退款）", "আঙুল টেনে রাস্তার দিক ঠিক করো, তারপর ✔ চাপো (কেনা রাস্তা আর ফেরত যায় না)"], "Tap/drag on a road to demolish it (fee applies); tap a house and it will ask": ["اضغط/اسحب على الطريق لهدمه (برسوم)، واضغط على منزل وسيسأل", "Коснитесь/проведите по дороге, чтобы снести (платно); коснитесь дома — спросит", "Toca/arrastra una carretera para demolerla (con coste); toca una casa y preguntará", "सड़क पर टैप/खींचने से टूटेगी (शुल्क लगता है), घर पर टैप करने पर पूछेगा", "点击/拖动道路可拆除（收费），点击房屋会询问", "রাস্তায় ট্যাপ/টানলে ভাঙবে (ফি লাগে), ঘরে ট্যাপ করলে জিজ্ঞেস করবে"], "Tap the land to choose a spot, then press ✔": ["المس الأرض لاختيار مكان ثم اضغط ✔", "Коснитесь земли, выберите место и нажмите ✔", "Toca el terreno para elegir un lugar y pulsa ✔", "ज़मीन पर टैप करके जगह चुनो, फिर ✔ दबाओ", "点击土地选择位置，然后点 ✔", "জমিতে ট্যাপ করে জায়গা বেছে ✔ চাপো"], "No room here ✖": ["لا مساحة هنا ✖", "Здесь нет места ✖", "No hay espacio aquí ✖", "यहाँ जगह नहीं ✖", "这里没有空间 ✖", "এখানে জায়গা নেই ✖"], "🔋 Low-power mode on": ["🔋 تم تفعيل وضع توفير الطاقة", "🔋 Режим энергосбережения включён", "🔋 Modo de bajo consumo activado", "🔋 लो-पावर मोड चालू", "🔋 已开启低功耗模式", "🔋 লো-পাওয়ার মোড চালু"], "✨ High quality mode": ["✨ وضع الجودة العالية", "✨ Режим высокого качества", "✨ Modo de alta calidad", "✨ हाई क्वालिटी मोड", "✨ 高画质模式", "✨ হাই কোয়ালিটি মোড"], "Income while away +": ["دخل أثناء غيابك +", "Доход за время отсутствия +", "Ingresos mientras no estabas +", "वापस आने पर आय +", "离线收入 +", "ফিরে আসায় আয় +"], "⚡ Slow device, low-power mode turned on": ["⚡ جهاز بطيء، تم تفعيل وضع توفير الطاقة", "⚡ Медленное устройство, включён режим энергосбережения", "⚡ Dispositivo lento, modo de bajo consumo activado", "⚡ धीमा डिवाइस, लो-पावर मोड चालू हो गया", "⚡ 设备较慢，已开启低功耗模式", "⚡ ধীর ডিভাইস, লো-পাওয়ার মোড চালু হয়েছে"], "Path": ["مسار", "Тропа", "Sendero", "रास्ता", "小径", "পথ"], "Road": ["طريق", "Дорога", "Carretera", "सड़क", "公路", "রাস্তা"], "Double Rd": ["طريق مزدوج", "Двойная дор.", "Doble vía", "दोहरी सड़क", "双向路", "ডাবল রোড"], "Parking": ["موقف", "Парковка", "Parking", "पार्किंग", "停车场", "পার্কিং"], "House": ["منزل", "Дом", "Casa", "घर", "房屋", "ঘর"], "Big House": ["منزل كبير", "Большой дом", "Casa grande", "बड़ा घर", "大房子", "বড় ঘর"], "Shop": ["متجر", "Магазин", "Tienda", "दुकान", "商店", "দোকান"], "Cha Dokan": ["محل شاي", "Чайная", "Té", "चाय की दुकान", "茶铺", "চা দোকান"], "Table": ["طاولة", "Стол", "Mesa", "मेज़", "桌子", "টেবিল"], "Well": ["بئر", "Колодец", "Pozo", "कुआँ", "水井", "কূপ"], "Power Pole": ["عمود كهرباء", "Столб", "Poste eléctrico", "बिजली खंभा", "电线杆", "বিদ্যুৎ খুঁটি"], "Farm": ["مزرعة", "Ферма", "Granja", "खेत", "农场", "খামার"], "Pier": ["رصيف", "Пирс", "Muelle", "घाट", "码头", "জেটি"], "Fountain": ["نافورة", "Фонтан", "Fuente", "फ़ोवारा", "喷泉", "ফোয়ারা"], "Chicken": ["دجاج", "Куры", "Gallinas", "मुर्गी", "鸡舍", "মুরগি"], "Goat": ["ماعز", "Козы", "Cabras", "बकरी", "羊圈", "ছাগল"], "Mine": ["منجم", "Шахта", "Mina", "खदान", "矿场", "খনি"], "FishFarm": ["مزرعة أسماك", "Рыбхоз", "Piscifactoría", "मछली फार्म", "渔场", "মাছ খামার"], "Police": ["شرطة", "Полиция", "Policía", "पुलिस", "警察局", "পুলিশ"], "Gas": ["وقود", "АЗС", "Gasolinera", "पेट्रोल", "加油站", "গ্যাস"], "FireStn": ["إطفاء", "Пожарная", "Bomberos", "दमकल", "消防站", "ফায়ার স্টেশন"], "Hospital": ["مستشفى", "Больница", "Hospital", "अस्पताल", "医院", "হাসপাতাল"], "BusStn": ["محطة حافلات", "Автовокзал", "Estación bus", "बस स्टेशन", "车站", "বাস স্টেশন"], "School": ["مدرسة", "Школа", "Escuela", "स्कूल", "学校", "স্কুল"], "Campfire": ["نار مخيم", "Костёр", "Fogata", "अलाव", "篝火", "ক্যাম্পফায়ার"], "Port": ["ميناء", "Порт", "Puerto", "बंदरगाह", "港口", "বন্দর"], "Lamp": ["مصباح", "Фонарь", "Farola", "बत्ती", "路灯", "বাতি"], "Bench": ["مقعد", "Скамья", "Banco", "बेंच", "长椅", "বেঞ্চ"], "Tree": ["شجرة", "Дерево", "Árbol", "पेड़", "树", "গাছ"], "Dozer": ["جرافة", "Бульдозер", "Excavadora", "बुलडोज़र", "推土机", "বুলডোজার"], "Fruit": ["فاكهة", "Фрукты", "Fruta", "फल", "水果", "ফল"], "Veg": ["خضار", "Овощи", "Verdura", "सब्ज़ी", "蔬菜", "সবজি"], "Bread": ["خبز", "Хлеб", "Pan", "रोटी", "面包", "রুটি"], "Fish": ["سمك", "Рыба", "Pescado", "मछली", "鱼", "মাছ"], "Gems": ["جواهر", "Самоцветы", "Gemas", "रत्न", "宝石", "রত্ন"], "Pottery": ["فخار", "Керамика", "Cerámica", "मिट्टी के बर्तन", "陶器", "মৃৎশিল্প"], "Cloth": ["قماش", "Ткани", "Tela", "कपड़ा", "布料", "কাপড়"], "Meat": ["لحم", "Мясо", "Carne", "मांस", "肉", "মাংস"], "Cha ready!": ["الشاي جاهز!", "Чай готов!", "¡Té listo!", "चाय तैयार!", "茶好了！", "চা রেডি!"], "🍵 Cha!": ["🍵 شاي!", "🍵 Чай!", "🍵 ¡Té!", "🍵 चाय!", "🍵 茶！", "🍵 চা!"], "Thank you!": ["شكرًا!", "Спасибо!", "¡Gracias!", "धन्यवाद!", "谢谢！", "ধন্যবাদ!"], "Hello!": ["مرحبًا!", "Привет!", "¡Hola!", "नमस्ते!", "你好！", "হ্যালো!"], "Nice day!": ["يوم جميل!", "Хороший день!", "¡Qué buen día!", "अच्छा दिन है!", "天气真好！", "দিনটা সুন্দর!"], "To the market!": ["إلى السوق!", "На рынок!", "¡Al mercado!", "बाज़ार चलो!", "去集市！", "বাজারে যাই!"], "Fresh bread, mmm": ["خبز طازج، mmm", "Свежий хлеб, ммм", "Pan fresco, mmm", "ताज़ी रोटी, ममम", "新鲜面包，嗯", "গরম রুটি, ম্মম"], "I love this village": ["أحب هذه القرية", "Люблю эту деревню", "Amo este pueblo", "मुझे यह गाँव पसंद है", "我爱这个村子", "আমি এই গ্রাম ভালোবাসি"], "Look, the fountain!": ["انظر، النافورة!", "Смотри, фонтан!", "¡Mira, la fuente!", "देखो, फ़ोवारा!", "看，喷泉！", "দেখো, ফোয়ারা!"], "Going shopping": ["ذاهب للتسوق", "Иду за покупками", "De compras", "खरीदारी करने जा रहा हूँ", "去购物", "কেনাকাটায় যাচ্ছি"], "See you!": ["إلى اللقاء!", "Пока!", "¡Hasta luego!", "फिर मिलेंगे!", "再见！", "আবার দেখা হবে!"], "So many stalls!": ["ما أكثر الأكشاك!", "Сколько лотков!", "¡Cuántos puestos!", "कितने सारे स्टॉल!", "好多摊位！", "কত দোকান!"], "Hi there!": ["مرحبًا بك!", "Здравствуйте!", "¡Hola por ahí!", "हाय!", "嗨！", "হাই!"], "Fresh goods!": ["بضائع طازجة!", "Свежий товар!", "¡Productos frescos!", "ताज़ा माल!", "新鲜货物！", "তাজা পণ্য!"], "Best price!": ["أفضل سعر!", "Лучшая цена!", "¡Mejor precio!", "सबसे बढ़िया दाम!", "最低价！", "সেরা দাম!"], "Come, buy!": ["تعال واشترِ!", "Заходите, покупайте!", "¡Ven, compra!", "आओ, खरीदो!", "快来买！", "আসুন, কিনুন!"], "Shiny gems here!": ["جواهر لامعة هنا!", "Сверкающие самоцветы!", "¡Gemas brillantes!", "चमकते रत्न यहाँ!", "闪亮宝石在这里！", "ঝকঝকে রত্ন এখানে!"], "Warm bread!": ["خبز ساخن!", "Тёплый хлеб!", "¡Pan calentito!", "गरम रोटी!", "热面包！", "গরম রুটি!"], "🔒 Level ": ["🔒 المستوى ", "🔒 Уровень ", "🔒 Nivel ", "🔒 Level ", "🔒 等级 ", "🔒 Level "], "🎉 Level ": ["🎉 المستوى ", "🎉 Уровень ", "🎉 Nivel ", "🎉 Level ", "🎉 等级 ", "🎉 Level "], " tiles": [" بلاطة", " клеток", " casillas", " टाइल", " 格", " টাইল"], " tiles · 🪙": [" بلاطة · 🪙", " клеток · 🪙", " casillas · 🪙", " टाइल · 🪙", " 格 · 🪙", " টাইল · 🪙"], " shop": [" (متجر)", " (магазин)", " (tienda)", " की दुकान", " 商店", " দোকান"], " (💧 Wells: ": [" (💧 الآبار: ", " (💧 Колодцев: ", " (💧 Pozos: ", " (💧 कुएँ: ", " (💧 水井：", " (💧 কূপ: "], " (⚡ Poles: ": [" (⚡ الأعمدة: ", " (⚡ Столбов: ", " (⚡ Postes: ", " (⚡ खंभे: ", " (⚡ 电线杆：", " (⚡ খুঁটি: "], "Land": ["أرض", "Земля", "Terreno", "ज़मीन", "土地", "জমি"], "Land MAX": ["أرض MAX", "Земля MAX", "Terreno MAX", "ज़मीन MAX", "土地 MAX", "জমি MAX"], "Land Lv": ["أرض Lv", "Земля Lv", "Terreno Lv", "ज़मीन Lv", "土地 Lv", "জমি Lv"], "🚶 Connect houses and shops with Paths, NPCs only walk on Paths.": ["🚶 صِل المنازل والمتاجر بالممرات، فالسكان يمشون على الممرات فقط.", "🚶 Соединяйте дома и магазины тропами — NPC ходят только по ним.", "🚶 Conecta casas y tiendas con senderos; los NPC solo caminan por ellos.", "🚶 Path से घर-दुकान जोड़ो, NPC सिर्फ़ Path पर चलते हैं।", "🚶 用小径连接房屋和商店，NPC 只会走小径。", "🚶 Path দিয়ে ঘর-দোকান জুড়ে দাও, NPC শুধু Path দিয়েই হাঁটে।"], "🪙 Tap to collect coins · ❗ complaints · press and hold a house to move/rotate": ["🪙 اضغط لجمع العملات · ❗ شكاوى · اضغط مطولًا على منزل لنقله/تدويره", "🪙 Коснитесь, чтобы собрать монеты · ❗ жалобы · удерживайте дом, чтобы переместить/повернуть", "🪙 Toca para recoger monedas · ❗ quejas · mantén pulsada una casa para moverla/girarla", "🪙 टैप करके सिक्के उठाओ · ❗ शिकायत · घर को दबाकर रखो तो हटा/घुमा सकते हो", "🪙 点击收集金币 · ❗ 投诉 · 长按房屋可移动/旋转", "🪙 ট্যাপ করে কয়েন তোলো · ❗ নালিশ · ঘর চেপে ধরলে সরানো/ঘোরানো"], "🔄 Rotate the camera 360° with two fingers (also with the ⟲ ⟳ buttons)": ["🔄 أدر الكاميرا 360° بإصبعين (أو بزري ⟲ ⟳)", "🔄 Вращайте камеру на 360° двумя пальцами (или кнопками ⟲ ⟳)", "🔄 Gira la cámara 360° con dos dedos (o con los botones ⟲ ⟳)", "🔄 दो उंगलियों से कैमरा 360° घुमाओ (⟲ ⟳ बटन से भी)", "🔄 双指旋转镜头 360°（也可用 ⟲ ⟳ 按钮）", "🔄 দুই আঙুল ঘুরিয়ে ৩৬০° ক্যামেরা ঘোরাও (⟲ ⟳ বাটনেও ঘোরে)"], "Hello! I am the Chief of this village. 👴\nWelcome to GameVo Mine village!": ["مرحبًا! أنا زعيم هذه القرية. 👴\nأهلًا بك في قرية GameVo Mine!", "Здравствуйте! Я староста этой деревни. 👴\nДобро пожаловать в деревню GameVo Mine!", "¡Hola! Soy el jefe de este pueblo. 👴\n¡Bienvenido al pueblo GameVo Mine!", "नमस्ते! मैं इस गाँव का मुखिया हूँ। 👴\nGameVo Mine गाँव में आपका स्वागत है!", "你好！我是这个村子的村长。👴\n欢迎来到 GameVo Mine 村！", "হ্যালো! আমি এই গ্রামের প্রধান। 👴\nGameVo Mine গ্রামে স্বাগতম!"], "This little piece of land is yours. Build roads, houses and shops, and your villagers will work and earn 🪙 coins for you.": ["هذه القطعة الصغيرة من الأرض ملكك. ابنِ الطرق والمنازل والمتاجر وسيعمل سكانك ويكسبون لك 🪙 عملات.", "Этот небольшой участок — ваш. Стройте дороги, дома и магазины, а ваши жители будут работать и зарабатывать вам 🪙 монеты.", "Este pequeño terreno es tuyo. Construye caminos, casas y tiendas, y tus aldeanos trabajarán y ganarán 🪙 monedas para ti.", "यह छोटी-सी ज़मीन आपकी है। सड़क, घर और दुकानें बनाइए, और आपके गाँव वाले काम करके आपके लिए 🪙 सिक्के कमाएँगे।", "这块小土地属于你。修建道路、房屋和商店，村民们会工作并为你赚取 🪙 金币。", "এই ছোট্ট জমিটুকু তোমার। রাস্তা, ঘর আর দোকান বানাও, তোমার গ্রামবাসীরা কাজ করে তোমার জন্য 🪙 কয়েন আয় করবে।"], "No worry, I will guide you step by step. Let us build your first Path!": ["لا تقلق، سأرشدك خطوة بخطوة. هيا نبني أول ممر لك!", "Не беспокойтесь, я проведу вас шаг за шагом. Давайте построим первую тропу!", "Tranquilo, te guiaré paso a paso. ¡Construyamos tu primer sendero!", "चिंता मत कीजिए, मैं आपको कदम-दर-कदम रास्ता दिखाऊँगा। चलिए पहला Path बनाएँ!", "别担心，我会一步一步带你。我们先来修第一条小径吧！", "চিন্তা নেই, আমি ধাপে ধাপে তোমাকে দেখাব। চলো প্রথম Path বানাই!"], "Step 1 · Build a Path 🛣\nPick 🛣 Path in the bottom bar, drag your finger on the ground to draw a line, then press ✔.": ["الخطوة 1 · ابنِ ممرًا 🛣\nاختر 🛣 Path من الشريط السفلي، واسحب إصبعك على الأرض لرسم خط، ثم اضغط ✔.", "Шаг 1 · Постройте тропу 🛣\nВыберите 🛣 Path внизу, проведите пальцем по земле, чтобы нарисовать линию, и нажмите ✔.", "Paso 1 · Construye un sendero 🛣\nElige 🛣 Path en la barra inferior, arrastra el dedo por el suelo para trazar una línea y pulsa ✔.", "चरण 1 · Path बनाइए 🛣\nनीचे की पट्टी से 🛣 Path चुनिए, ज़मीन पर उंगली खींचकर लाइन बनाइए, फिर ✔ दबाइए।", "第 1 步 · 修一条小径 🛣\n在底部栏选择 🛣 Path，在地面上拖动手指画出一条线，然后点 ✔。", "ধাপ ১ · একটি Path বানাও 🛣\nনিচের বার থেকে 🛣 Path বেছে নাও, মাটিতে আঙুল টেনে লাইন আঁকো, তারপর ✔ চাপো।"], "Step 2 · Build a House 🏠\nPick 🏠 House, tap a spot next to your Path, then press ✔.": ["الخطوة 2 · ابنِ منزلًا 🏠\nاختر 🏠 House، واضغط على مكان بجانب الممر، ثم اضغط ✔.", "Шаг 2 · Постройте дом 🏠\nВыберите 🏠 House, коснитесь места рядом с тропой и нажмите ✔.", "Paso 2 · Construye una casa 🏠\nElige 🏠 House, toca un lugar junto al sendero y pulsa ✔.", "चरण 2 · घर बनाइए 🏠\n🏠 House चुनिए, Path के पास किसी जगह टैप कीजिए, फिर ✔ दबाइए।", "第 2 步 · 建一栋房子 🏠\n选择 🏠 House，点击小径旁的位置，然后点 ✔。", "ধাপ ২ · একটি ঘর বানাও 🏠\n🏠 House বেছে নাও, Path-এর পাশে কোনো জায়গায় ট্যাপ করো, তারপর ✔ চাপো।"], "👷 Your builder is building the house.\nWatch the timer above it. Tap the house to watch an ad and cut 5 minutes.": ["👷 العامل يبني المنزل.\nراقب المؤقت فوقه. اضغط على المنزل لمشاهدة إعلان وتقليل 5 دقائق.", "👷 Строитель строит дом.\nСледите за таймером над ним. Коснитесь дома, чтобы посмотреть рекламу и сократить 5 минут.", "👷 Tu constructor está levantando la casa.\nMira el temporizador encima. Toca la casa para ver un anuncio y ahorrar 5 minutos.", "👷 आपका बिल्डर घर बना रहा है।\nउसके ऊपर टाइमर देखिए। घर पर टैप करके विज्ञापन देखें और 5 मिनट घटाएँ।", "👷 建筑工正在建房子。\n看看上方的计时器。点击房子可看广告并减少 5 分钟。", "👷 তোমার বিল্ডার ঘরটি বানাচ্ছে।\nওপরের টাইমার দেখো। ঘরে ট্যাপ করে বিজ্ঞাপন দেখলে ৫ মিনিট কমবে।"], "Namaste! 🙏 I am your first villager. Thank you for my new home!": ["مرحبًا! 🙏 أنا أول قروي عندك. شكرًا على منزلي الجديد!", "Намасте! 🙏 Я ваш первый житель. Спасибо за новый дом!", "¡Namasté! 🙏 Soy tu primer aldeano. ¡Gracias por mi nuevo hogar!", "नमस्ते! 🙏 मैं आपका पहला गाँव वाला हूँ। मेरे नए घर के लिए धन्यवाद!", "你好！🙏 我是你的第一位村民。谢谢你给我新家！", "নমস্কার! 🙏 আমি তোমার প্রথম গ্রামবাসী। আমার নতুন ঘরের জন্য ধন্যবাদ!"], "Here is how to run this village:\n💧 give us water (Well)\n⚡ give us power (Power Pole)\n🏪 build shops where we can buy things\nHappy villagers pay you more 🪙.": ["هكذا تدير هذه القرية:\n💧 وفّر لنا الماء (بئر)\n⚡ وفّر لنا الكهرباء (عمود كهرباء)\n🏪 ابنِ متاجر نشتري منها\nالسكان السعداء يدفعون لك 🪙 أكثر.", "Вот как управлять деревней:\n💧 дайте нам воду (колодец)\n⚡ дайте электричество (столб)\n🏪 стройте магазины, где мы сможем покупать\nДовольные жители платят вам больше 🪙.", "Así se dirige este pueblo:\n💧 danos agua (pozo)\n⚡ danos electricidad (poste)\n🏪 construye tiendas donde comprar\nAldeanos felices te pagan más 🪙.", "इस गाँव को ऐसे चलाइए:\n💧 हमें पानी दीजिए (Well)\n⚡ बिजली दीजिए (Power Pole)\n🏪 दुकानें बनाइए जहाँ हम खरीदारी कर सकें\nखुश गाँव वाले आपको ज़्यादा 🪙 देते हैं।", "村子是这样运转的：\n💧 给我们水（水井）\n⚡ 给我们电（电线杆）\n🏪 建商店让我们购物\n村民越开心，给你的 🪙 越多。", "এই গ্রাম এভাবে চালাতে হয়:\n💧 আমাদের পানি দাও (Well)\n⚡ বিদ্যুৎ দাও (Power Pole)\n🏪 দোকান বানাও যেখানে আমরা কেনাকাটা করব\nখুশি গ্রামবাসী তোমাকে বেশি 🪙 দেয়।"], "Tap the 🪙 coins above houses and shops to collect them. Look at ❤️ 😊 📋 💧 ⚡ in the status panel to see how we feel.": ["اضغط على عملات 🪙 فوق المنازل والمتاجر لجمعها. وانظر إلى ❤️ 😊 📋 💧 ⚡ في لوحة الحالة لتعرف حالتنا.", "Касайтесь монет 🪙 над домами и магазинами, чтобы собрать их. Смотрите ❤️ 😊 📋 💧 ⚡ на панели состояния, чтобы узнать, как мы себя чувствуем.", "Toca las monedas 🪙 sobre casas y tiendas para recogerlas. Mira ❤️ 😊 📋 💧 ⚡ en el panel de estado para saber cómo estamos.", "घरों और दुकानों के ऊपर 🪙 सिक्कों पर टैप करके उठाइए। स्टेटस पैनल में ❤️ 😊 📋 💧 ⚡ देखकर जानिए हम कैसा महसूस कर रहे हैं।", "点击房屋和商店上方的 🪙 金币来收取。查看状态面板里的 ❤️ 😊 📋 💧 ⚡，了解我们的状态。", "ঘর আর দোকানের ওপরের 🪙 কয়েনে ট্যাপ করে তুলে নাও। স্ট্যাটাস প্যানেলে ❤️ 😊 📋 💧 ⚡ দেখে বুঝে নাও আমরা কেমন আছি।"], "Step 3 · Build a Well 💧\nMy family needs water. Pick 💧 Well and place it near the houses.": ["الخطوة 3 · ابنِ بئرًا 💧\nعائلتي تحتاج إلى الماء. اختر 💧 Well وضعه قرب المنازل.", "Шаг 3 · Постройте колодец 💧\nМоей семье нужна вода. Выберите 💧 Well и поставьте рядом с домами.", "Paso 3 · Construye un pozo 💧\nMi familia necesita agua. Elige 💧 Well y colócalo cerca de las casas.", "चरण 3 · Well बनाइए 💧\nमेरे परिवार को पानी चाहिए। 💧 Well चुनिए और घरों के पास रखिए।", "第 3 步 · 建一口水井 💧\n我的家人需要水。选择 💧 Well，放在房屋附近。", "ধাপ ৩ · একটি Well বানাও 💧\nআমার পরিবারের পানি দরকার। 💧 Well বেছে ঘরগুলোর কাছে বসাও।"], "Step 4 · Build a Shop 🏪\nWe want to buy things! Pick 🏪 Shop and place it next to a Path (keep the yellow tile in front empty).": ["الخطوة 4 · ابنِ متجرًا 🏪\nنريد أن نشتري أشياء! اختر 🏪 Shop وضعه بجانب ممر (اترك البلاطة الصفراء الأمامية فارغة).", "Шаг 4 · Постройте магазин 🏪\nМы хотим покупать! Выберите 🏪 Shop и поставьте рядом с тропой (жёлтая клетка перед ним должна быть свободна).", "Paso 4 · Construye una tienda 🏪\n¡Queremos comprar cosas! Elige 🏪 Shop y colócala junto a un sendero (deja libre la baldosa amarilla del frente).", "चरण 4 · दुकान बनाइए 🏪\nहम सामान खरीदना चाहते हैं! 🏪 Shop चुनिए और Path के पास रखिए (सामने की पीली टाइल खाली रखें)।", "第 4 步 · 建一家商店 🏪\n我们想买东西！选择 🏪 Shop，放在小径旁（前方黄色格子要留空）。", "ধাপ ৪ · একটি দোকান বানাও 🏪\nআমরা জিনিস কিনতে চাই! 🏪 Shop বেছে Path-এর পাশে বসাও (সামনের হলুদ টাইল ফাঁকা রাখো)।"], "Wonderful! Your village is alive! 🎉\nHere is a welcome gift: +300 🪙": ["رائع! قريتك صارت حيّة! 🎉\nهدية ترحيب: +300 🪙", "Прекрасно! Ваша деревня ожила! 🎉\nПодарок: +300 🪙", "¡Maravilloso! ¡Tu pueblo cobra vida! 🎉\nRegalo de bienvenida: +300 🪙", "शानदार! आपका गाँव जीवंत हो गया! 🎉\nस्वागत उपहार: +300 🪙", "太棒了！你的村子活起来了！🎉\n欢迎礼物：+300 🪙", "চমৎকার! তোমার গ্রাম প্রাণ পেয়েছে! 🎉\nস্বাগত উপহার: +300 🪙"], "Level up to unlock more land (the ☁ clouds will clear), new buildings and more builders. At night, watch an ad to skip to morning. Have fun!": ["ارفع مستواك لفتح المزيد من الأرض (ستنقشع ☁ السحب) ومبانٍ جديدة وعمال أكثر. في الليل شاهد إعلانًا لتتخطى إلى الصباح. استمتع!", "Повышайте уровень, чтобы открыть больше земли (☁ облака рассеются), новые здания и строителей. Ночью можно посмотреть рекламу и пропустить до утра. Удачи!", "Sube de nivel para desbloquear más terreno (las ☁ nubes se despejarán), nuevos edificios y más constructores. De noche, mira un anuncio para saltar a la mañana. ¡Diviértete!", "लेवल बढ़ाकर और ज़मीन (☁ बादल हटेंगे), नई बिल्डिंग और ज़्यादा बिल्डर अनलॉक कीजिए। रात में विज्ञापन देखकर सीधे सुबह कर सकते हैं। मज़ा कीजिए!", "升级可解锁更多土地（☁ 云会散去）、新建筑和更多建筑工。夜晚可看广告直接跳到早晨。玩得开心！", "লেভেল বাড়ালে আরও জমি (☁ মেঘ সরে যাবে), নতুন বিল্ডিং আর আরও বিল্ডার আনলক হবে। রাতে বিজ্ঞাপন দেখে সকাল করা যায়। মজা করো!"], "Chief": ["زعيم القرية", "Староста", "Jefe", "मुखिया", "村长", "গ্রামপ্রধান"], "Villager": ["القروي", "Селянин", "Aldeano", "गाँव का निवासी", "村民", "গ্রামবাসী"], "Next ▶": ["التالي ▶", "Далее ▶", "Siguiente ▶", "आगे ▶", "下一步 ▶", "পরের ▶"], "Let us start!": ["هيا نبدأ!", "Начнём!", "¡Empecemos!", "चलो शुरू करें!", "开始吧！", "চলো শুরু করি!"], "Skip tutorial": ["تخطي الشرح", "Пропустить обучение", "Saltar tutorial", "ट्यूटोरियल छोड़ें", "跳过教程", "টিউটোরিয়াল বাদ দাও"], "Got it!": ["فهمت!", "Понятно!", "¡Entendido!", "समझ गया!", "明白了！", "বুঝেছি!"], "Finish": ["إنهاء", "Готово", "Terminar", "समाप्त", "完成", "শেষ"], "Namaste! 🙏": ["مرحبًا! 🙏", "Намасте! 🙏", "¡Namasté! 🙏", "नमस्ते! 🙏", "你好！🙏", "নমস্কার! 🙏"], "Fence": ["سياج", "Забор", "Valla", "बाड़", "围栏", "বেড়া"]};
+if(GX.DICT)Object.assign(DICT,GX.DICT);
+const TTC=new Map();
+function tt(s,...a){let r=s;if(LANG!=='en'&&s){r=TTC.get(s);if(r===undefined){const d=DICT[s];r=d&&d[LANGS.indexOf(LANG)-1]||s;TTC.set(s,r)}}return a.length?r.replace(/\{(\d+)\}/g,(m,i)=>a[i]):r}
+const HINT=['🚶 Connect houses and shops with Paths, NPCs only walk on Paths.','🪙 Tap to collect coins · ❗ complaints · press and hold a house to move/rotate','🔄 Rotate the camera 360° with two fingers (also with the ⟲ ⟳ buttons)'];
+function setHint(){const h=document.getElementById('hint');if(h)h.innerHTML=tut<99?'':HINT.map(x=>tt(x)).join('<br>')}
+function setGameLang(l){if(!LANGS.includes(l)||l===LANG)return;LANG=l;TTC.clear();document.documentElement.lang=l;document.documentElement.classList.toggle('rtl',l==='ar');try{setHint();refreshBar();subRow();statC='';renderStat();hud();tgRefresh()}catch(e){}}
+// ================= helpers =================
+const WINTER=(m=>m>=10||m<=1)(new Date().getMonth());
+const LS=k=>{try{return localStorage.getItem(k)}catch(e){return null}},LSet=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
+const hex=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
+const nz=(x,y,k)=>{let h=Math.imul(x+101,374761393)^Math.imul(y+57,668265263)^Math.imul((k|0)+13,1103515245);h=Math.imul(h^(h>>>13),1274126177);return((h^(h>>>16))>>>0)/4294967295};
+const jit=(c,v,x,y,k)=>{const d=(nz(x,y,k)-.5)*v;return[c[0]+d,c[1]+d,c[2]+d]};
+const mk16=f=>{const a=[];for(let y=0;y<16;y++)for(let x=0;x<16;x++)a.push(f(x,y));return a};
+const flat=(h,v,k)=>{const c=hex(h);return mk16((x,y)=>jit(c,v||14,x,y,k||1))};
+// ================= block ids =================
+const GR=1,DIRT=2,STONE=3,COB=4,PLK=5,PLKD=6,LOG=7,LEAF=8,SAND=9,WAT=10,GLS=11,BRK=12,PATH=13,HAY=14,CRATE=15,BARREL=16,SHELF=17,PLAS=18,
+WRED=19,WBLU=20,WYEL=21,WGRN=22,WORG=23,WWHT=24,ROOFR=25,PUMP=26,MEL=27,LAMP=28,WPUR=29,WPNK=30,DOOR=31,SBRK=32,ROOFB=33,ROOFG=34,ROOFD=35,ROOFO=36,GR2=37,LEAF2=38,PATH2=39,
+G_FRUIT=40,G_VEG=41,G_FISH=42,G_BREAD=43,G_GEMS=44,G_POT=45,G_CLOTH=46,G_MEAT=47;
+const TEX={};
+function plankTex(base,dark){const b=hex(base),d=hex(dark);return mk16((x,y)=>{if(y%4==3)return jit(d,8,x,y,11);if(((x+(y>>2)*5)%9)==0)return jit([b[0]*.86,b[1]*.86,b[2]*.86],8,x,y,12);return jit(b,12,x,y,13)})}
+function roofTex(h){const b=hex(h);return mk16((x,y)=>{const row=y>>2;if(y%4==3)return jit([b[0]*.62,b[1]*.62,b[2]*.62],6,x,y,31);if(((x+row*2)%4)==3)return jit([b[0]*.8,b[1]*.8,b[2]*.8],6,x,y,32);return jit(b,16,x,y,33)})}
+function woolTex(h){const b=hex(h);return mk16((x,y)=>{const w=((x+y)&1)?0:-8;return jit([b[0]+w,b[1]+w,b[2]+w],10,x,y,34)})}
+function goodsTex(cols){return mk16((x,y)=>{const cx=x>>2,cy=y>>2,lx=x&3,ly=y&3;if(lx<3&&ly<3&&!((lx==0||lx==2)&&(ly==0||ly==2)&&nz(cx,cy,50)>.4)){const c=cols[Math.floor(nz(cx,cy,51)*cols.length)];return jit(hex(c),14,x,y,52)}return jit(hex('#9a6a38'),10,x,y,53)})}
+function build(){
+ const SW=(a,b)=>WINTER?b:a;
+ const grassTop=(v)=>mk16((x,y)=>{let c=hex(SW(v?'#7cc04a':'#69ae40',v?'#eef4f7':'#e3ecf1'));if(nz(x,y,2)>.8)c=hex(SW('#58993a','#cfdde6'));else if(nz(x,y,3)>.92)c=hex(SW('#93d25e','#fafdff'));return jit(c,10,x,y,4)});
+ const dirt=mk16((x,y)=>{let c=hex('#8b5e3c');if(nz(x,y,8)>.8)c=hex('#74492b');else if(nz(x,y,9)>.92)c=hex('#a37550');return jit(c,8,x,y,10)});
+ const grassSide=(v)=>mk16((x,y)=>{const e=3+(nz(x,0,5)>.5?1:0)+(nz(x,0,6)>.8?1:0);return y<e?jit(hex(SW(v?'#7cc04a':'#69ae40',v?'#eef4f7':'#e3ecf1')),12,x,y,7):dirt[y*16+x]});
+ TEX[GR]={t:grassTop(0),s:grassSide(0)};TEX[GR2]={t:grassTop(1),s:grassSide(1)};
+ TEX[DIRT]={t:dirt,s:dirt};
+ const stone=mk16((x,y)=>{let c=hex('#8f8f8f');if(nz(x,y,14)>.8)c=hex('#777');else if(nz(x,y,15)>.9)c=hex('#a8a8a8');return jit(c,8,x,y,16)});
+ TEX[STONE]={t:stone,s:stone};
+ const cob=mk16((x,y)=>{const sx=(x+((y>>2)&1)*3)%6;if(y%4==0||sx==0)return jit(hex('#5f5f5f'),8,x,y,17);return jit(hex('#8c8c8c'),22,x,y,18)});
+ TEX[COB]={t:cob,s:cob};
+ const pl=plankTex('#b98c50','#8a6232');TEX[PLK]={t:pl,s:pl};
+ const pd=plankTex('#7d5632','#563a20');TEX[PLKD]={t:pd,s:pd};
+ TEX[LOG]={t:mk16((x,y)=>{const d=Math.hypot(x-7.5,y-7.5);if(d>7)return jit(hex('#5c4222'),8,x,y,19);return jit(hex(Math.floor(d)%3==0?'#8d6a38':'#b0884c'),8,x,y,20)}),
+  s:mk16((x,y)=>jit(hex((x%4==0||x%7==3)?'#5c4222':'#6e5028'),10,x,y,21))};
+ const leaf=(a,b,c)=>mk16((x,y)=>{const r=nz(x,y,22);return jit(hex(r>.72?a:r>.35?b:c),6,x,y,23)});
+ TEX[LEAF]={t:leaf(...SW(['#2f7d2a','#3f9a34','#52b042'],['#8fae9c','#c3d8cf','#f2f8f8'])),s:leaf(...SW(['#2b7226','#389030','#4a9f3c'],['#86a593','#b9cfc5','#ecf5f5']))};
+ TEX[LEAF2]={t:leaf(...SW(['#2a6a3a','#358046','#44965a'],['#7c9c92','#adc7c0','#e9f3f2'])),s:leaf(...SW(['#265f34','#2f7440','#3d8a50'],['#738f87','#a2bcb5','#e1eeed']))};
+ const sand=flat('#e3d39b',12,24);TEX[SAND]={t:sand,s:sand};
+ const wat=mk16((x,y)=>{const w=Math.sin((x+y*.7)*.9)+Math.sin(y*1.1+x*.3);return jit(hex(w>1.1?'#6fb2ee':'#3f86dc'),8,x,y,25)});TEX[WAT]={t:wat,s:wat};
+ const gls=mk16((x,y)=>{if(x==0||y==0||x==15||y==15||x==7||x==8||y==7||y==8)return hex('#5a4630');if(x+y<9&&x>1&&y>1&&(x-y>-2&&x-y<2))return hex('#e8f6ff');return jit(hex('#8fc8e8'),8,x,y,26)});TEX[GLS]={t:gls,s:gls};
+ const brk=mk16((x,y)=>{if(y%4==3||((x+((y>>2)&1)*4)%8)==7)return jit(hex('#c9c0b0'),6,x,y,27);return jit(hex('#a8493a'),22,x,y,28)});TEX[BRK]={t:brk,s:brk};
+ const sbrk=mk16((x,y)=>{if(y%4==3||((x+((y>>2)&1)*4)%8)==7)return jit(hex('#6f6f6f'),6,x,y,29);return jit(hex('#a2a2a2'),18,x,y,30)});TEX[SBRK]={t:sbrk,s:sbrk};
+ const path=mk16((x,y)=>{let c=hex('#c1a26c');if(nz(x,y,35)>.78)c=hex('#a88a58');else if(nz(x,y,36)>.9)c=hex('#d6bd8a');return jit(c,8,x,y,37)});TEX[PATH]={t:path,s:path};
+ const path2=mk16((x,y)=>{let c=hex('#b89a64');if(nz(x,y,38)>.75)c=hex('#9e8350');else if(nz(x,y,39)>.9)c=hex('#cdb482');return jit(c,8,x,y,40)});TEX[PATH2]={t:path2,s:path2};
+ TEX[HAY]={t:mk16((x,y)=>jit(hex((x+y)%5==0?'#c79a2a':'#e0b83e'),12,x,y,41)),s:mk16((x,y)=>{if(y==4||y==11)return hex('#7a5a2a');return jit(hex(x%3==0?'#c79a2a':'#e0b83e'),10,x,y,42)})};
+ const crate=mk16((x,y)=>{if(x<2||y<2||x>13||y>13||Math.abs(x-y)<2||Math.abs(x+y-15)<2)return jit(hex('#8a5e2e'),8,x,y,43);return jit(hex('#c19552'),12,x,y,44)});TEX[CRATE]={t:crate,s:crate};
+ TEX[BARREL]={t:mk16((x,y)=>{const d=Math.hypot(x-7.5,y-7.5);return d>7?hex('#555'):jit(hex(d>5?'#7a5028':'#8f6232'),8,x,y,45)}),s:mk16((x,y)=>{if(y==2||y==3||y==12||y==13)return jit(hex('#4a4a4a'),6,x,y,46);return jit(hex(x%4==0?'#6a4522':'#8f6232'),10,x,y,47)})};
+ const bc=['#bb3333','#3388bb','#33aa33','#ccbb33','#8833bb','#ee8833'];
+ TEX[SHELF]={t:pl,s:mk16((x,y)=>{if(y<2||y>13||(y>=6&&y<=8))return jit(hex('#b98c50'),10,x,y,48);return jit(hex(bc[(((x/3)|0)+(y<6?0:3))%6]),12,x,y,49)})};
+ const plas=mk16((x,y)=>jit(hex('#eadfc6'),10,x,y,54));TEX[PLAS]={t:plas,s:plas};
+ const W={[WRED]:'#d94a46',[WBLU]:'#4472d4',[WYEL]:'#f2c230',[WGRN]:'#52b04c',[WORG]:'#ee8a2b',[WWHT]:'#f3f0e8',[WPUR]:'#9150c8',[WPNK]:'#ee90b6'};
+ for(const k in W){const t=woolTex(W[k]);TEX[k]={t:t,s:t}}
+ const R={[ROOFR]:'#b0502e',[ROOFB]:'#456aa8',[ROOFG]:'#4f8f45',[ROOFD]:'#6b4a30',[ROOFO]:'#d9772a'};
+ for(const k in R){const t=roofTex(R[k]);TEX[k]={t:t,s:t}}
+ TEX[PUMP]={t:mk16((x,y)=>jit(hex(x%4==0?'#c8630f':'#e8851d'),10,x,y,55)),s:mk16((x,y)=>jit(hex(x%4==0?'#c8630f':(x%4==2?'#f0912a':'#e8851d')),8,x,y,56))};
+ TEX[MEL]={t:mk16((x,y)=>jit(hex(x%4<2?'#2f8f3a':'#7cc24a'),8,x,y,57)),s:mk16((x,y)=>jit(hex(x%4<2?'#2f8f3a':'#7cc24a'),8,x,y,58))};
+ const lamp=mk16((x,y)=>{let c=hex('#ffe9a0');if(nz(x,y,59)>.7)c=hex('#ffcf5a');if(x<1||y<1||x>14||y>14)c=hex('#a87a2a');return jit(c,10,x,y,60)});TEX[LAMP]={t:lamp,s:lamp};
+ const door=mk16((x,y)=>{if(x<1||x>14||y<1)return hex('#3a2410');if(x==7||x==8)return hex('#3a2410');if(x==10&&(y==8||y==9))return hex('#f2c94c');const pn=(y>2&&y<7)||(y>8&&y<14);return jit(hex(pn?'#8a5a2e':'#6e4620'),8,x,y,61)});TEX[DOOR]={t:pd.slice(),s:door};
+ const sideP=plankTex('#a67a42','#7a5430');
+ const G={[G_FRUIT]:['#e03c31','#e03c31','#7bc043','#f2b632'],[G_VEG]:['#ee8a2b','#4aa84a','#8f5aa8','#f2d84a'],[G_FISH]:['#6f8fa8','#9ab6c8','#cfe0ea'],[G_BREAD]:['#c8863a','#e0a85a','#a86a2a'],[G_GEMS]:['#4fe3e0','#b57bff','#e0245e','#ffffff'],[G_POT]:['#c8602a','#e08a4a','#a84a22'],[G_CLOTH]:['#d94a46','#4472d4','#f2c230','#52b04c','#9150c8'],[G_MEAT]:['#d86a6a','#c04a4a','#e8a0a0']};
+ for(const k in G)TEX[k]={t:goodsTex(G[k]),s:sideP};
+}
+build();
+const ASPH=48,PARK=49;
+{const a=mk16((x,y)=>jit(hex(nz(x,y,90)>.85?'#5a5d62':'#46494e'),8,x,y,91));TEX[ASPH]={t:a,s:a};
+ const pk=mk16((x,y)=>{if(x<2||y<1)return hex('#e8e8e8');return jit(hex(nz(x,y,92)>.85?'#62656a':'#50535a'),8,x,y,93)});TEX[PARK]={t:pk,s:pk}}
+const MINEH=50;TEX[MINEH]={t:flat('#120f0c',6,95),s:flat('#2a241c',6,96)};
+// ================= texture canvases (any-angle renderer) =================
+const TXC={};
+function getTex(t,face,lvl,dark){const key=t*32+(face?1+lvl:0)*2+dark;let c=TXC[key];if(c)return c;
+ const arr=face?TEX[t].s:TEX[t].t,k=face?(.6+.06*lvl):1;
+ c=document.createElement('canvas');c.width=c.height=16;const g=c.getContext('2d'),img=g.createImageData(16,16),d=img.data;
+ for(let i=0;i<256;i++){let r=arr[i][0]*k,gg=arr[i][1]*k,b=arr[i][2]*k;if(dark){r=r*.58+7.6;gg=gg*.58+9.2;b=b*.58+16.8}d[i*4]=r;d[i*4+1]=gg;d[i*4+2]=b;d[i*4+3]=255}
+ g.putImageData(img,0,0);TXC[key]=c;return c}
+const N=104,HM=14,B=new Uint8Array(N*N*HM);
+let land=0;const LR=s=>10+3*s,LMAX=12,landReq=s=>Math.round(3.4*s),landCost=s=>Math.round(90*s*s*(1+s/4)+60),own=(x,z)=>{const r=LR(land);return Math.abs(x+.5-N/2)<=r&&Math.abs(z+.5-N/2)<=r},needP=new Map();
+const ix=(x,y,z)=>(y*N+z)*N+x;
+const inb=(x,z)=>x>=0&&z>=0&&x<N&&z<N;
+const gt=(x,y,z)=>(!inb(x,z)||y<0||y>=HM)?0:B[ix(x,y,z)];
+const st=(x,y,z,t)=>{dirtyW=true;if(!inb(x,z)||y<0||y>=HM)return;B[ix(x,y,z)]=t};
+const fill=(x0,y0,z0,x1,y1,z1,t)=>{for(let y=y0;y<=y1;y++)for(let z=z0;z<=z1;z++)for(let x=x0;x<=x1;x++)st(x,y,z,t)};
+const occ=new Uint8Array(N*N),furn=new Uint8Array(N*N),furnL=[],TEAP=4;const mark=(x0,z0,x1,z1,soft)=>{for(let z=z0;z<=z1;z++)for(let x=x0;x<=x1;x++)if(inb(x,z)){const k=z*N+x;if(!soft)occ[k]=1;else if(!occ[k])occ[k]=2}};
+let rs=20261112;const rnd=()=>{rs|=0;rs=rs+0x6D2B79F5|0;let t=Math.imul(rs^rs>>>15,1|rs);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
+const lights=[],rd=new Uint8Array(N*N);let dirtyW=true;
+const WALLS=[
+ {w:PLAS,c:LOG,r:ROOFR},{w:PLK,c:LOG,r:ROOFB},{w:BRK,c:COB,r:ROOFD},{w:COB,c:LOG,r:ROOFG},{w:PLAS,c:LOG,r:ROOFO},{w:WWHT,c:LOG,r:ROOFB},{w:PLK,c:LOG,r:ROOFR},{w:BRK,c:COB,r:ROOFG},{w:PLAS,c:LOG,r:ROOFD},{w:COB,c:LOG,r:ROOFR},{w:WWHT,c:LOG,r:ROOFO},{w:PLK,c:COB,r:ROOFG},{w:PLAS,c:LOG,r:ROOFB},{w:WBLU,c:COB,r:ROOFB},{w:BRK,c:COB,r:ROOFR},{w:WWHT,c:WRED,r:ROOFR},{w:WYEL,c:COB,r:ROOFD}];
+function house(x0,z0,w,d,side,sty,hgt){
+ hgt=hgt||3;const S=WALLS[sty%WALLS.length],x1=x0+w-1,z1=z0+d-1,top=1+hgt;
+ fill(x0,1,z0,x1,1,z1,PLK);
+ fill(x0,2,z0,x1,top,z1,S.w);
+ if(w>2&&d>2)fill(x0+1,2,z0+1,x1-1,top,z1-1,0);
+ for(let y=2;y<=top;y++){st(x0,y,z0,S.c);st(x1,y,z0,S.c);st(x0,y,z1,S.c);st(x1,y,z1,S.c)}
+ // door position
+ let dx,dz,ox,oz,nx,nz2;const cx=x0+((w-1)>>1),cz=z0+((d-1)>>1);
+ if(side=='S'){dx=cx;dz=z1;ox=0;oz=1}else if(side=='N'){dx=cx;dz=z0;ox=0;oz=-1}else if(side=='E'){dx=x1;dz=cz;ox=1;oz=0}else{dx=x0;dz=cz;ox=-1;oz=0}
+ st(dx,2,dz,DOOR);st(dx,3,dz,DOOR);
+ // windows
+ for(let x=x0+1;x<x1;x+=2){if(!(side=='N'&&x==dx))st(x,3,z0,GLS);if(!(side=='S'&&x==dx))st(x,3,z1,GLS)}
+ for(let z=z0+1;z<z1;z+=2){if(!(side=='W'&&z==dz))st(x0,3,z,GLS);if(!(side=='E'&&z==dz))st(x1,3,z,GLS)}
+ // door lantern
+ const lx=dx+(ox?0:1),lz=dz+(oz?0:1);if(gt(lx,3,lz)&&gt(lx,3,lz)!=S.c)st(lx,3,lz,LAMP);
+ // roof (hip roof with overhang)
+ let k=0,ry=top+1;while(k<3){const a=x0-1+k,b=x1+1-k,c=z0-1+k,e=z1+1-k;if(a>b||c>e)break;fill(a,ry,c,b,ry,e,S.r);k++;ry++}
+ const topY=ry-1;
+ // chimney
+ const chx=x1-1,chz=z0+1;fill(chx,top+1,chz,chx,topY+1,chz,COB);
+ // path stub from door
+ let px=dx+ox,pz=dz+oz;for(let i=0;i<3;i++){if(!inb(px,pz)||occ[pz*N+px]||gt(px,1,pz)==PATH||gt(px,1,pz)==PATH2||gt(px,1,pz)==ASPH||gt(px,1,pz)==COB||gt(px,1,pz)==STONE)break;st(px,1,pz,PATH);occ[pz*N+px]=2;px+=ox;pz+=oz}
+ mark(x0-1,z0-1,x1+1,z1+1,1);if(ox||oz)mark(Math.min(x0-1,dx+ox*2),Math.min(z0-1,dz+oz*2),Math.max(x1+1,dx+ox*2),Math.max(z1+1,dz+oz*2),1);mark(x0,z0,x1,z1);
+ return{door:[dx,dz],out:[dx+ox,dz+oz]}
+}
+const AWN=[[WRED,WWHT],[WBLU,WWHT],[WYEL,WWHT],[WGRN,WWHT],[WORG,WWHT],[WPUR,WWHT],[WPNK,WWHT],[WRED,WYEL]];
+const GOODS=[G_FRUIT,G_VEG,G_BREAD,G_FISH,G_GEMS,G_POT,G_CLOTH,G_MEAT];
+function stall(x0,cz,back,gi){// 2x2 small stall
+ const aw=AWN[gi%AWN.length],gd=GOODS[gi%GOODS.length],mz=cz+back;
+ for(let x=x0;x<=x0+1;x++){st(x,2,cz,gd);st(x,1,mz,(gt(x,1,mz)==COB||gt(x,1,mz)==STONE)?gt(x,1,mz):PLK)}
+ st(x0,3,cz,LOG);st(x0+1,2,mz,(gi%2)?BARREL:CRATE);st(x0+1,3,mz,LOG);
+ for(const z of [cz,mz])for(let x=x0;x<=x0+1;x++){st(x,4,z,((x-x0)%2==0)?aw[0]:aw[1]);occ[z*N+x]=1}
+ return{mx:x0+.5,mz:mz+.5,fx:x0,fz:cz-back,color:aw[0]};
+}
+// table set: stool row, table row, stool row (2 wide). Table/stools are drawn as 3D props, seats let NPCs sit
+function addSet(b,x0,za,zt,zb){const ss=[];furnL.push({k:'tbl',x:x0+1,z:zt+.5,seats:ss});
+ for(const zs of[za,zb])for(let x=x0;x<=x0+1;x++){ss.push({x:x,z:zs,dx:0,dz:Math.sign(zt-zs),p:null,tea:b.t=='tea'?b:null});furnL.push({k:'stl',x:x+.5,z:zs+.5})}
+ for(let x=x0;x<=x0+1;x++)furn[zt*N+x]=1;b.seats=ss}
+function teaS(x0,z0,back,b){const zo=i=>back<0?z0+i:z0+4-i,mr=zo(0),cr=zo(1);
+ for(let i=0;i<5;i++)for(let x=x0;x<=x0+1;x++)st(x,1,zo(i),PLK);
+ st(x0,2,cr,SHELF);st(x0+1,2,cr,PLKD);st(x0+1,2,mr,COB);st(x0+1,3,mr,LAMP);st(x0,3,cr,LOG);
+ for(const z of[mr,cr])for(let x=x0;x<=x0+1;x++)st(x,4,z,((x-x0+(z==mr?1:0))%2)?WWHT:WORG);
+ addSet(b,x0,zo(2),zo(3),zo(4));mark(x0,z0,x0+1,z0+4);
+ return{mx:x0+.5,mz:mr+.5,front:back<0?[x0,z0+5]:[x0,z0-1]}}
+
+function tree(x,z,pine){const h=3+(nz(x,z,90)>.5?1:0);for(let y=2;y<2+h;y++)st(x,y,z,LOG);const L=pine?LEAF2:LEAF,ty=1+h;
+ for(let dy=0;dy<3;dy++){const r=pine?(dy==0?2:1):(dy==2?1:2);
+  for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++){if(Math.abs(dx)==r&&Math.abs(dz)==r&&r>1&&nz(x+dx,z+dz,91+dy)<.45)continue;if(dx==0&&dz==0&&dy==0)continue;if(!gt(x+dx,ty+dy,z+dz)&&gt(x+dx,1,z+dz)!=WAT)st(x+dx,ty+dy,z+dz,L)}}
+ st(x,ty+3,z,L);occ[z*N+x]=1}
+function farm(x0,z0){for(let z=z0;z<z0+4;z++)for(let x=x0;x<x0+5;x++){if(x==x0||x==x0+4||z==z0||z==z0+3)st(x,2,z,PLK);else{st(x,1,z,DIRT);st(x,2,z,((x+z)%3==0)?PUMP:((x+z)%3==1)?MEL:0)}}st(x0+2,2,z0+3,0);st(x0+2,1,z0+3,PATH);st(x0+2,1,z0+4,PATH);st(x0+4,2,z0+4,HAY)}
+function fount(x0,z0){for(let z=z0;z<z0+4;z++)for(let x=x0;x<x0+4;x++){if(x==x0||x==x0+3||z==z0||z==z0+3){st(x,1,z,((x+z)&1)?COB:STONE);st(x,2,z,STONE)}else st(x,1,z,WAT)}st(x0+1,2,z0+1,STONE);st(x0+1,3,z0+1,STONE);st(x0+1,4,z0+1,LAMP)}
+// ================= state =================
+let coins=600,rep=50,day=1,gen=0,rate=0,uid=1,facing=0,shopG=0,tool=null,pend=null;
+let xp=0,level=1,rline=null,gm=0;let bl=[],trees=[],roads=new Set(),mains=new Set(),cars=[],treeCut=0,sel=null,mv=null,chickens=[];const people=[];
+const TOP=new Int8Array(N*N),DECT=new Map(),FNC=new Map(),DEC=[],walk=new Uint8Array(N*N),cwalk=new Uint8Array(N*N),accg=new Uint8Array(N*N),cost=new Float32Array(N*N);
+const grd=(x,z)=>(x<2||z<2||x>N-3||z>N-3)?SAND:(nz(x,z,70)>.72?GR2:GR);let decBudget=1;
+const topY=(x,z)=>{for(let y=HM-1;y>=0;y--)if(B[ix(x,y,z)])return y;return -1};
+const WALKT=new Set([PATH,PATH2,COB,STONE,PLK,ASPH,PARK]);
+const GN=[['🍎','Fruit',8],['🥕','Veg',6],['🍞','Bread',5],['🐟','Fish',9],['💎','Gems',40],['🏺','Pottery',14],['🧵','Cloth',18],['🥩','Meat',12]];
+const CAT=[{id:'road',e:'🚶',n:'Path',c:2,w:1,d:1,paint:1,rt:1},{id:'main',e:'🛣️',n:'Road',c:6,w:1,d:1,paint:1,rt:2},{id:'dmain',e:'🛤️',n:'Double Rd',c:6,w:1,d:1,paint:1,rt:2,wide:1},{id:'park',e:'🅿️',n:'Parking',c:60,w:3,d:2},{id:'h4',e:'🏠',n:'House',c:120,w:3,d:3,res:2},{id:'h6',e:'🏡',n:'Big House',c:280,w:5,d:5,res:4},{id:'shop',e:'🏪',n:'Shop',c:90,w:2,d:2},{id:'tea',e:'🍵',n:'Cha Dokan',c:110,w:2,d:5},{id:'table',e:'🪑',n:'Table',c:30,w:2,d:3},{id:'well',e:'💧',n:'Well',c:40,w:2,d:2,wcap:4,wr:14},{id:'pole',e:'⚡',n:'Power Pole',c:60,w:1,d:1,pcap:6,pr:12},{id:'fence',e:'🕸',n:'Fence',c:4,w:1,d:1,one:1},{id:'farm',e:'🌾',n:'Farm',c:150,w:5,d:5},{id:'dock',e:'🎣',n:'Pier',c:40,w:3,d:2},{id:'fount',e:'⛲',n:'Fountain',c:220,w:4,d:4},{id:'cfarm',e:'🐔',n:'Chicken',c:200,w:5,d:5,pen:1,wk:1},{id:'gfarm',e:'🐐',n:'Goat',c:320,w:5,d:5,pen:1,wk:1},{id:'mine',e:'⛏️',n:'Mine',c:250,w:5,d:5,pen:1,wk:1},{id:'ffarm',e:'🐟',n:'FishFarm',c:420,w:5,d:5,pen:1,wk:1},{id:'police',e:'🚓',n:'Police',c:700,w:4,d:4,hs:1,sty:13},{id:'gas',e:'⛽',n:'Gas',c:800,w:4,d:4,hs:1,sty:16,inc:10},{id:'fire',e:'🚒',n:'FireStn',c:900,w:4,d:4,hs:1,sty:14},{id:'hosp',e:'🏥',n:'Hospital',c:1200,w:6,d:6,hs:1,sty:15},{id:'bus',e:'🚌',n:'BusStn',c:900,w:5,d:4},{id:'school',e:'🏫',n:'School',c:1500,w:6,d:5,hs:1,sty:5,wk:1,inc:8},{id:'camp',e:'🔥',n:'Campfire',c:150,w:3,d:3},{id:'port',e:'⚓',n:'Port',c:2500,w:5,d:3},{id:'lamp',e:'💡',n:'Lamp',c:15,w:1,d:1,one:1},{id:'bench',e:'🪑',n:'Bench',c:10,w:1,d:1,one:1},{id:'tree',e:'🌳',n:'Tree',c:5,w:1,d:1,one:1},{id:'dozer',e:'🚜',n:'Dozer',c:0,w:1,d:1,paint:1}];
+CAT.forEach(i=>{i.n0=i.n;Object.defineProperty(i,'n',{get(){return tt(i.n0)},configurable:true})});   // item names follow the language
+const LVL={road:1,main:3,park:6,h4:1,h6:8,shop:1,tea:1,table:1,farm:4,dock:5,fount:9,lamp:3,bench:3,tree:1,dozer:1,cfarm:7,gfarm:11,mine:1,ffarm:15,police:17,gas:19,fire:21,hosp:24,port:22,camp:5,dmain:12,bus:16,school:18};const ITEM={};CAT.forEach(i=>{i.lv=LVL[i.id]||1;ITEM[i.id]=i});
+const isH=it=>it.id=='h4'||it.id=='h6'||it.hs;
+function tileUpd(x,z){const k=z*N+x,ty=topY(x,z),t=ty>=0?B[ix(x,ty,z)]:0;TOP[k]=Math.max(1,ty);const edge=(x==0||z==0||x==N-1||z==N-1),ok=ty==1&&!edge&&!furn[k]&&(WALKT.has(t)||(accg[k]&&(t==GR||t==GR2||t==SAND)));walk[k]=ok?1:0;cwalk[k]=(ty==1&&!edge&&(t==GR||t==GR2||t==SAND||t==DIRT||t==PATH||t==PATH2))?1:0;cost[k]=t==ASPH?1.3:t==PARK?1.2:(t==PATH||t==PATH2||t==COB||t==STONE)?1:2.6}
+function stampB(b){const it=ITEM[b.t],x=b.x,z=b.z;
+ if(isH(it)){const i=house(x,z,it.w,it.d,'SWNE'[b.f%4],it.sty!==undefined?it.sty:b.s,3);b.out=i.out;b.front=i.out;b.cx=x+it.w/2;b.cz=z+it.d/2;b.ih=7.5;b.cap=40}
+ else if(it.pen){pen(x,z,b.t);mark(x,z,x+4,z+4);b.front=[x+2,z+4];b.out=b.front;b.cx=x+2.5;b.cz=z+2;b.ih=4;b.cap=b.t=='mine'?0:40}
+ else if(b.t=='shop'){const back=b.f%2?1:-1,r=stall(x,back<0?z+1:z,back,b.g);b.mx=r.mx;b.mz=r.mz;b.front=[r.fx,r.fz];b.cx=r.mx;b.cz=r.mz;b.color=r.color;b.ih=5.9;b.cap=60}
+ else if(b.t=='tea'){const back=b.f%2?1:-1,r=teaS(x,z,back,b);b.mx=r.mx;b.mz=r.mz;b.front=r.front;mark(r.front[0],r.front[1],r.front[0],r.front[1],1);b.cx=x+1;b.cz=z+2.5;b.color='#e8872b';b.ih=5.9;b.cap=60}
+  else if(b.t=='table'){addSet(b,x,z,z+1,z+2);mark(x,z,x+1,z+2);b.front=[x,z+3];b.cx=x+1;b.cz=z+1.5;b.ih=3;b.cap=0}
+  else if(b.t=='farm'){farm(x,z);mark(x,z,x+4,z+4);b.front=[x+2,z+4];b.cx=x+2.5;b.cz=z+2;b.ih=4;b.cap=40}
+ else if(b.t=='fount'){fount(x,z);mark(x,z,x+3,z+3);b.cx=x+2;b.cz=z+2;b.ih=4;b.cap=0}
+ else if(b.t=='dock'||b.t=='port'){const w=it.w,d=it.d;fill(x,1,z,x+w-1,1,z+d-1,PLK);for(const cx of[x,x+w-1])for(const cz of[z,z+d-1])st(cx,2,cz,LOG);if(b.t=='port'){st(x+1,2,z+1,CRATE);st(x+3,2,z+1,BARREL)}mark(x,z,x+w-1,z+d-1);let bd=1e9;for(let zz=z;zz<z+d;zz++){const m=Math.min(x+(w>>1),N-2-x,zz,N-1-zz);if(m<bd){bd=m;b.front=[x+(w>>1),zz]}}b.fd=edgeDir(b.front[0],b.front[1]);b.cx=x+w/2;b.cz=z+d/2;b.ih=3.6;b.cap=b.t=='port'?60:40}
+ else if(b.t=='park'){fill(x,1,z,x+it.w-1,1,z+it.d-1,PARK);mark(x,z,x+it.w-1,z+it.d-1);b.cx=x+1.5;b.cz=z+1;b.ih=3;b.cap=40;const old=b.bays||[];b.bays=[];for(let zz=z;zz<z+it.d;zz++)for(let xx=x;xx<x+it.w;xx++)if(D4.some(q=>inb(xx+q[0],zz+q[1])&&rd[(zz+q[1])*N+xx+q[0]]==2))b.bays.push(old.find(o=>o.x==xx&&o.z==zz)||{x:xx,z:zz,car:null})}
+ else if(b.t=='camp'){st(x+1,1,z+1,COB);st(x+1,2,z+1,LAMP);st(x,2,z+1,LOG);st(x+2,2,z+1,LOG);mark(x,z,x+2,z+2);b.front=[x+1,z+3];b.spots=[[x+1,z],[x+1,z+2],[x,z],[x+2,z+2],[x,z+2],[x+2,z]];b.cx=x+1.5;b.cz=z+1.5;b.ih=3;b.cap=0}
+ else if(b.t=='bus'){fill(x,1,z,x+4,1,z+2,PLK);for(const cx of[x,x+4])for(const cz of[z,z+2])fill(cx,2,cz,cx,3,cz,LOG);fill(x,4,z,x+4,4,z+2,PLKD);mark(x,z,x+4,z+3);b.front=[x+2,z+3];b.cx=x+2.5;b.cz=z+1.5;b.ih=5;b.cap=60}
+ else if(b.t=='fence'){mark(x,z,x,z);FNC.set(z*N+x,{x:x+.5,z:z+.5});b.cx=x+.5;b.cz=z+.5;b.ih=2.6;b.cap=0}
+ else if(b.t=='well'){st(x,1,z,COB);st(x+1,1,z,COB);st(x,1,z+1,COB);st(x+1,1,z+1,WAT);st(x,2,z,STONE);st(x+1,2,z,STONE);st(x,2,z+1,STONE);st(x,3,z,LOG);st(x+1,3,z,LOG);st(x,4,z,PLKD);st(x+1,4,z,PLKD);mark(x,z,x+1,z+1);b.cx=x+1;b.cz=z+1;b.ih=4.5;b.cap=0}
+ else if(b.t=='pole'){st(x,2,z,STONE);st(x,3,z,LOG);st(x,4,z,LOG);st(x,5,z,LOG);st(x,6,z,GLS);mark(x,z,x,z);b.cx=x+.5;b.cz=z+.5;b.ih=6.5;b.cap=0}
+ else if(b.t=='lamp'){st(x,2,z,COB);st(x,3,z,COB);st(x,4,z,LAMP);mark(x,z,x,z);b.cap=0}
+ else{st(x,2,z,PLK);mark(x,z,x,z);b.cap=0}}
+function stampAll(){tcBefore();stampAll0();tcAfter()}
+function stampAll0(){
+ B.fill(0);occ.fill(0);rd.fill(0);furn.fill(0);furnL.length=0;FNC.clear();
+ for(let x=0;x<N;x++)for(let z=0;z<N;z++){st(x,0,z,DIRT);st(x,1,z,grd(x,z))}
+ roads.forEach(k=>{const x=k%N,z=(k/N)|0;st(x,1,z,(x+z)%7==0?PATH2:PATH);rd[k]=1});
+ mains.forEach(k=>{const x=k%N,z=(k/N)|0;st(x,1,z,ASPH);rd[k]=2});
+ for(const t of trees)tree(t[0],t[1],t[2]);
+ for(const b of bl)stampB(b);
+ for(const b of bl)if(b.t=='table'&&b.seats){let best=null,bd=99;for(const t of bl)if(t.t=='tea'){const d=Math.max(Math.abs(t.x-b.x),Math.abs(t.z+2-(b.z+1)));if(d<bd){bd=d;best=t}}for(const q of b.seats)q.tea=best}
+ for(const p of people)if(p.merch){p.x=p.stall.mx;p.z=p.stall.mz}
+ accg.fill(0);for(const b of bl){const it=ITEM[b.t];if(!b.front)continue;if(isH(it)||b.t=='shop'||b.t=='tea'||b.t=='table'||it.pen||b.t=='farm'||b.t=='camp'||b.t=='bus'){accg[b.front[1]*N+b.front[0]]=1;const RR=b.t=='tea'?3:1;if(b.t!='farm')for(let zz=b.z-RR;zz<=b.z+it.d-1+RR;zz++)for(let xx=b.x-RR;xx<=b.x+it.w-1+RR;xx++)if(inb(xx,zz))accg[zz*N+xx]=1}}
+ refresh()}
+function refresh(){
+ DECT.clear();DEC.length=0;lights.length=0;for(const p of people){p.sit=false;p.seat=null}
+ for(let x=0;x<N;x++)for(let z=0;z<N;z++){const k=z*N+x;tileUpd(x,z);const t=gt(x,1,z);
+  if((t==GR||t==GR2)&&!gt(x,2,z)&&!occ[k]&&nz(x,z,80)<.2){const d={x:x+.2+nz(x,z,81)*.6,z:z+.2+nz(x,z,82)*.6,k:Math.floor(nz(x,z,83)*6)};DEC.push(d);if(!DECT.has(k))DECT.set(k,[]);DECT.get(k).push(d)}}
+ for(let y=0;y<HM;y++)for(let z=0;z<N;z++)for(let x=0;x<N;x++){const t=B[ix(x,y,z)];if(t==LAMP)lights.push({x:x+.5,z:z+.5,h:y+.5,big:1});else if(t==GLS)lights.push({x:x+.5,z:z+.5,h:y+.5,big:0})}
+ for(const p of people)if(!p.hidden&&!p.merch){const sx=Math.floor(p.x),sz=Math.floor(p.z);if(!walk[sz*N+sx]){const n=nearestWalk(sx,sz);p.x=n[0]+.5;p.z=n[1]+.5}p.path=null;p.state='idle';p.t=.5;p.task=null;p.going=false}}
+// ================= placement =================
+function okRect(x0,z0,x1,z1,strict,noOwn){for(let z=z0;z<=z1;z++)for(let x=x0;x<=x1;x++){if(x<1||z<1||x>N-2||z>N-2)return false;if(!noOwn&&!own(x,z))return false;const k=z*N+x;if(occ[k]||(strict&&rd[k]))return false}return true}
+function frontOf(it,x0,z0,f){if(isH(it)){const cx=x0+((it.w-1)>>1),cz=z0+((it.d-1)>>1),s=f%4;return s==0?[cx,z0+it.d]:s==2?[cx,z0-1]:s==3?[x0+it.w,cz]:[x0-1,cz]}
+ if(it.id=='shop')return f%2?[x0,z0-1]:[x0,z0+2];if(it.id=='tea')return f%2?[x0,z0-1]:[x0,z0+5];if(it.id=='farm'||it.pen)return[x0+2,z0+4];return null}
+function tileWhy(x,z,o){if(x<1||z<1||x>N-2||z>N-2)return tt('🌊 Water / outside the map');
+ if(!o.noOwn&&!own(x,z))return tt('🔒 Land not bought (buy Land)');
+ const k=z*N+x;if(occ[k]==1)return trees.some(t=>t[0]==x&&t[1]==z)?tt('🌳 A tree is here (cut it with 🚜)'):tt('🏠 Something is already here');
+ if(o.strict&&rd[k])return tt('🛣 There is a road/Path here');
+ if(o.hard&&occ[k]==2)return tt('🟫 Empty space in front of the door');return ''}
+function blockers(it,x0,z0,f){const r=[],dk=it.id=='dock'||it.id=='port',add=(x,z,o)=>{const w=tileWhy(x,z,o);if(w)r.push({x:x,z:z,w:w})};
+ for(let z=z0;z<z0+it.d;z++)for(let x=x0;x<x0+it.w;x++)add(x,z,{strict:1,hard:!it.one,noOwn:dk});
+ if(isH(it)){for(let z=z0-1;z<=z0+it.d;z++)for(let x=x0-1;x<=x0+it.w;x++)if(x<x0||x>=x0+it.w||z<z0||z>=z0+it.d)add(x,z,{noOwn:1})}
+ else if(dk){if(!(x0<=5||z0<=5||x0+it.w>=N-5||z0+it.d>=N-5))r.push({x:x0,z:z0,w:tt('🌊 Place it by the water')})}
+ else if(it.id=='park'){let ok=false;for(let z=z0;z<z0+it.d;z++)for(let x=x0;x<x0+it.w;x++)for(const q of D4)if(inb(x+q[0],z+q[1])&&rd[(z+q[1])*N+x+q[0]]==2)ok=true;if(!ok)r.push({x:x0,z:z0,w:tt('🛣 Place it next to a big Road')})}
+ else if(it.id=='shop'||it.id=='tea'){const fr=frontOf(it,x0,z0,f);if(!inb(fr[0],fr[1])||occ[fr[1]*N+fr[0]]==1)r.push({x:fr[0],z:fr[1],w:tt('🟨 Keep the yellow tile in front empty')})}
+ else if(it.id=='table'){if(!bl.some(b=>b.t=='tea'&&Math.max(b.x-(x0+it.w),x0-(b.x+2),0,b.z-(z0+it.d),z0-(b.z+5))<=2))r.push({x:x0,z:z0,w:tt('🍵 Place within 2 tiles of a Cha Dokan')})}
+ return r}
+function canPlace(it,x0,z0,f){return blockers(it,x0,z0,f).length==0}
+const MAXPOP=260;   // hard cap on walking people so a month-old village stays smooth
+function spawnRes(b){const n=ITEM[b.t].res;for(let i=0;i<n;i++){if(people.length>=MAXPOP)break;const kid=n>2&&i==n-1;people.push({x:b.out[0]+.5,z:b.out[1]+.5,path:null,pi:0,state:'idle',t:1+i*2+rnd()*2,look:mkLook(kid),home:b,spd:(kid?1.7:1.2)+rnd()*.35,face:{sx:1,sy:1},fr:rnd()*6,alpha:0,ox:(rnd()-.5)*.36,oz:(rnd()-.5)*.36,bub:null,kid:kid,hidden:true,sleep:false,wallet:6+Math.floor(rnd()*10),going:false})}}
+function mkMerch(b){const Lk=mkLook(false);Lk.apron=b.color;Lk.hat=b.id%3==0?'cap':'';people.push({x:b.mx,z:b.mz,merch:1,stall:b,look:Lk,face:{sx:b.id%2?1:-1,sy:1},fr:rnd()*6,alpha:1,state:'idle',bub:null,hidden:false})}
+function syncCh(){chickens=chickens.filter(c=>bl.includes(c.b));for(const b of bl){if(b.bt>0)continue;const k=(b.t=='farm'||b.t=='cfarm')?'c':b.t=='gfarm'?'g':null;if(!k||chickens.some(c=>c.b===b))continue;const pen=b.t!='farm',n=pen?(k=='g'?3:4):3;for(let i=0;i<n;i++){const t=pen?[b.x+1+i%3,b.z+1+(i>>1)%2]:[b.front[0]+i-1,b.front[1]];chickens.push({b:b,k:k,pen:pen,x:t[0]+.5,z:t[1]+.5,tx:t[0]+.5,tz:t[1]+.5,t:rnd()*2,fr:0,face:{sx:1,sy:1},hx:pen?b.x+2:t[0],hz:pen?b.z+1:t[1]})}}}
+function place(it,x0,z0){
+ if(it.lv>level){toast(tt('🔒 Level ')+it.lv+tt(' needed'));return false}
+ if(bl.filter(b=>b.t==it.id).length>=limOf(it.id)){toast(tt('🚫 Limit ')+limOf(it.id)+tt(' only — level up to raise the limit'));return false}
+ if(!it.one&&bl.filter(q=>q.bt>0).length>=builders()){toast(tt('👷 All builders are busy. Wait until a building is finished.'));return false}
+ if(it.id=='shop'&&GL[shopG]>level){toast(tt('🔒 This product needs Level ')+GL[shopG]);return false}
+ if(it.id!='dock'&&it.id!='port'&&!own(x0,z0)){toast(tt('🔒 This land is not bought — press the 🗺️ Land button'));return false}
+ {const bk=blockers(it,x0,z0,facing);if(bk.length){toast('✖ '+bk[0].w);return false}}
+ if(coins<it.c){toast(tt('Not enough coins 🪙'));return false}
+ coins-=it.c;
+ if(it.id=='tree'){trees.push([x0,z0,rnd()<.3]);stampAll()}
+ else{const b={id:uid++,t:it.id,x:x0,z:z0,f:facing,s:Math.floor(rnd()*13),g:shopG,cash:0,stock:6,rt:5,mst:'run',mt:7200,bank:0};bl.push(b);stampAll();b.bt=it.one?0:bTime(it);if(!b.bt)doneB(b);else{if(++placedN%6==0)setTimeout(()=>autoAd('build'),3000);toast((bl.filter(q=>q.bt>0).indexOf(b)<builders()?tt('🔨 Building… '):tt('⏳ Builder busy, waiting in line… '))+fmtT(b.bt)+tt(' (tap the building to watch an ad and cut 5 minutes)'))}}
+ addXp(it.c*.3);hud();save();refreshBar();return true}
+function removeB(b,nr){coins+=(nr?0:Math.floor(ITEM[b.t].c/2))+Math.floor(b.cash);bl.splice(bl.indexOf(b),1);for(let i=people.length-1;i>=0;i--)if(people[i].home===b||people[i].stall===b)people.splice(i,1);if(sel===b)sel=null;stampAll();syncCh();hud();save();refreshBar()}
+function paint(x,z){if(x<1||z<1||x>N-2||z>N-2)return;const k=z*N+x;
+ if(tool.rt){const T=tool.rt;if(!own(x,z)||occ[k]||rd[k]==T)return;if(coins<tool.c){toast(tt('Not enough coins 🪙'));return}coins-=tool.c;if(rd[k]==1)roads.delete(k);if(rd[k]==2)mains.delete(k);(T==1?roads:mains).add(k);rd[k]=T;st(x,1,z,T==1?((x+z)%7==0?PATH2:PATH):ASPH);DECT.delete(k);tileUpd(x,z);wMark(x,z,1);hud();return}
+ if(rd[k]){roads.delete(k);mains.delete(k);rd[k]=0;st(x,1,z,grd(x,z));tileUpd(x,z);wMark(x,z,1);return}
+ const b=bl.find(b=>{const it=ITEM[b.t],m=isH(it)?1:0;return x>=b.x-m&&x<=b.x+it.w-1+m&&z>=b.z-m&&z<=b.z+it.d-1+m});if(b)removeB(b)}
+// ================= economy =================
+function priceOf(g){const n=bl.filter(b=>b.t=='shop'&&b.g==g).length;return Math.max(1,Math.round(GN[g][2]*Math.max(.6,1.2-.12*(n-1))))}
+function newDay(){day++;const rm=.7+rep/166;
+ needs();for(const b of bl){if(b.bt>0)continue;const it=ITEM[b.t];let g=0;if(it.res)g=it.res*5*rm*lmul();else if(b.t=='farm')g=4;else if(it.inc)g=it.inc;else if(it.pen&&b.t!='mine')g=6;else if(b.t=='fount')rep=Math.min(100,rep+.3);
+  if(g&&b.cap){const n=Math.min(b.cap,b.cash+g);gen+=n-b.cash;b.cash=n}}
+ hud()}
+function decide(p){
+ if(p.job&&bl.includes(p.job)&&!p.job.bt&&!(p.job.t=='mine'&&p.job.mst!='run')&&rnd()<.8)return go(p,p.job.front,{k:'work',b:p.job});
+ if(p.look&&p.look.kid){const sc=bl.find(b=>b.t=='school'&&!b.bt);if(sc&&rnd()<.75)return go(p,sc.front,{k:'learn',b:sc})}
+ if(p.wallet>=TEAP&&rnd()<.45){const fs=[];for(const b of bl)if(b.seats&&!b.bt)for(const q of b.seats)if(!q.p&&q.tea&&bl.includes(q.tea)&&!q.tea.bt)fs.push(q);
+   if(fs.length){const q=fs[Math.floor(rnd()*fs.length)];q.p=p;p.seat=q;go(p,[q.x,q.z],{k:'tea',b:q.tea,seat:q});if(p.state!='walk'&&!p.sit){q.p=null;p.seat=null}return}}
+  const sh=bl.filter(b=>b.t=='shop'&&!b.bt&&b.stock>0&&priceOf(b.g)<=p.wallet);
+ if(sh.length&&rnd()<.7){const b=sh[Math.floor(rnd()*sh.length)];return go(p,b.front,{k:'shop',b:b})}
+ {const bs=bl.find(b=>b.t=='bus'&&!b.bt);if(bs&&p.wallet>=3&&rnd()<.12)return go(p,bs.front,{k:'bus',b:bs})}
+ if(rnd()<.2){const f=fishSpot();if(f)return go(p,f.t,{k:'fish',b:f.b})}
+ const jb=bl.filter(b=>(b.t=='farm'||b.t=='shop')&&!b.bt);
+ if(jb.length&&rnd()<.75){const b=jb[Math.floor(rnd()*jb.length)];return go(p,b.front,{k:'work',b:b})}
+ const h=p.home.out,c=[];for(let z=h[1]-8;z<=h[1]+8;z++)for(let x=h[0]-8;x<=h[0]+8;x++)if(inb(x,z)&&walk[z*N+x])c.push([x,z]);if(c.length)go(p,c[Math.floor(rnd()*c.length)],{k:'wander'});else p.t=3+rnd()*3}
+function go(p,tile,task){p.task=task;let sx=Math.floor(p.x),sz=Math.floor(p.z);if(!walk[sz*N+sx]){const n=nearestWalk(sx,sz);sx=n[0];sz=n[1];p.x=sx+.5;p.z=sz+.5}
+ if(sx==tile[0]&&sz==tile[1]){arrive(p);return}
+ const path=findPath(sx,sz,tile[0],tile[1]);if(!path||path.length<2){p.state='idle';p.t=2+rnd()*2;p.going=false;p.task=null;if(!p.tmp){const wd=task&&task.k=='wander',nw=performance.now();needP.set(sz*N+sx,{x:sx,z:sz,s:1,t:nw});if(!wd)needP.set(tile[1]*N+tile[0],{x:tile[0],z:tile[1],t:nw});if(!p.bub&&rnd()<.5)p.bub={text:tt('🚧 Connect a Path here'),t:2.5};if(!go.told){go.told=1;toast(tt('🚧 Connect a Path at the 📍 mark (and where 🚶 is stuck) so NPCs can walk'))}}return}needP.delete(tile[1]*N+tile[0]);p.path=path;p.pi=1;p.state='walk'}
+function arrive(p){const k=p.task||{};p.state='idle';p.t=1.5+rnd()*2;p.task=null;
+ if(k.k=='home'){p.hidden=true;p.sleep=night>.5;p.t=3+rnd()*4;p.going=false}
+ else if(k.k=='tea'){const q=k.seat,b=k.b;if(!bl.includes(b)||b.bt||!q||q.p!==p||p.wallet<TEAP){if(q&&q.p===p)q.p=null;p.seat=null;p.bub={text:'😕',t:2};return}
+   p.wallet-=TEAP;const n=Math.min(b.cap,b.cash+TEAP*.9*lmul());gen+=n-b.cash;b.cash=n;p.sit=true;p.state='sit';p.t=12+rnd()*10;p.x=q.x+.5;p.z=q.z+.5;p.bub={text:'🍵 Cha!',t:2};const m=people.find(o=>o.stall===b);if(m)m.bub={text:'Cha ready!',t:2}}
+ else if(k.k=='shop'){const b=k.b;if(!bl.includes(b))return;const pr=priceOf(b.g),m=people.find(q=>q.stall===b);
+  if(b.stock>0&&p.wallet>=pr){b.stock--;p.wallet-=pr;const inc=pr*.9*lmul();const n=Math.min(b.cap,b.cash+inc);gen+=n-b.cash;b.cash=n;p.bub={text:'🛒 '+GN[b.g][0],t:2};if(m)m.bub={text:'Thank you!',t:2}}else p.bub={text:'😕',t:2}}
+ else if(k.k=='fish'){p.state='fish';p.wk=k.b;p.t=10+rnd()*8;p.fd=edgeDir(Math.floor(p.x),Math.floor(p.z));p.bub={text:'🎣',t:2}}
+ else if(k.k=='car'){if(p.car)p.car.ready=true;const i=people.indexOf(p);if(i>=0)people.splice(i,1)}
+ else if(k.k=='chat'){p.state='chat';p.t=14+rnd()*14;p.bub={text:'💬',t:2};const sh=bl.find(b=>b.t=='shop'&&!b.bt&&b.stock>0&&Math.abs(b.x-k.b.x)+Math.abs(b.z-k.b.z)<16&&p.wallet>=priceOf(b.g));if(sh){const pr=priceOf(sh.g);sh.stock--;p.wallet-=pr;const n=Math.min(sh.cap,sh.cash+pr*1.2*lmul());gen+=n-sh.cash;sh.cash=n}}
+ else if(k.k=='learn'){p.state='work';p.wk=null;p.t=10+rnd()*8;p.bub={text:'📚',t:2}}
+ else if(k.k=='bus'){const b=k.b;if(!bl.includes(b))return;if(p.wallet>=3){p.wallet-=3;const n=Math.min(b.cap,b.cash+4*lmul());gen+=n-b.cash;b.cash=n;p.bub={text:'🚌',t:2};p.hidden=true;p.sleep=false;p.t=8+rnd()*8}}
+ else if(k.k=='work'){p.state='work';p.wk=k.b;p.t=8+rnd()*6;p.bub={text:'🔨',t:2}}
+ else p.t=2+rnd()*4}
+function finishWork(p){const t=p.wk;p.state='idle';p.t=.5+rnd();const w=3+Math.floor(rnd()*3);p.wallet+=w;
+ if(t&&bl.includes(t)){if(t.t=='shop')t.stock=Math.min(12,t.stock+3);else if(t.t=='farm'||(ITEM[t.t].pen&&t.t!='mine')){const n=Math.min(t.cap,t.cash+(t.t=='farm'?2.5:4));gen+=n-t.cash;t.cash=n;const gg=t.t=='ffarm'?3:(t.t=='cfarm'||t.t=='gfarm')?7:-1,fs=bl.filter(b=>b.t=='shop'&&b.g==gg&&!b.bt);if(fs.length)fs[0].stock=Math.min(12,fs[0].stock+2)}else if(t.t=='mine'&&t.mst=='run')t.mt=Math.max(0,t.mt-240)}p.bub={text:'+'+w+'🪙',t:1.5}}
+// complaints (নালিশ-বিচার)
+const CMP=[
+{q:tt('Rahim and Karim are quarreling over a fence. What is your ruling?'),o:[[tt('Make them settle'),0,5],[tt('Fine both of them'),30,-4],[tt('Ignore it'),0,-6]]},
+{q:tt('A complaint came in that a shopkeeper is overcharging.'),o:[[tt('Order a price cut'),0,6],[tt('Side with the merchant'),25,-5],[tt('Order an investigation'),-15,4]]},
+{q:tt('Someone stole a chicken at night!'),o:[[tt('Post a guard'),-20,6],[tt('Fine the thief'),20,2],[tt('Let it go'),0,-5]]},
+{q:tt('The road is too muddy to walk. It needs repair.'),o:[[tt('Repair now'),-25,7],[tt('Will check later'),0,-4]]},
+{q:tt('Loud music from the neighbour is keeping people awake.'),o:[[tt('Set quiet hours'),0,4],[tt('Issue a fine'),15,-3],[tt('Nothing'),0,-4]]},
+{q:tt('A request came in to hold a fair in the village.'),o:[[tt('Allow the fair'),-30,9],[tt('Too expensive, no'),0,-3]]},
+{q:tt('Two farmers are quarreling over a land boundary.'),o:[[tt('Order a survey'),-10,6],[tt('Fine both farmers'),30,-5],[tt('Avoid it'),0,-5]]}];
+const CMP_L={q:tt('The roads are very dark at night. Lamps needed!'),o:[[tt('Order lamps installed'),-20,8],[tt('Will check later'),0,-5]]},CMP_S={q:tt('There is not a single shop in the village! Where do we buy things?'),o:[[tt('Announce building a market'),0,4],[tt('Not my problem!'),0,-6]]};
+let cmps=[],cmpT=35,sv=15,rt2=30;
+function newCmp(){const pp=people.filter(p=>!p.merch&&!p.tmp&&!p.hidden&&!p.cmp&&p.alpha>.9);if(!pp.length||cmps.length>=3)return;
+ const p=pp[Math.floor(rnd()*pp.length)];let pool=CMP.slice();if(!bl.some(b=>b.t=='shop'||b.t=='tea'))pool=[CMP_S,CMP_S,CMP_S];else if(!bl.some(b=>b.t=='lamp'))pool.push(CMP_L,CMP_L);
+ const c={p:p,q:pool[Math.floor(rnd()*pool.length)],t:150};p.cmp=c;p.bub={text:'❗',t:1e9};cmps.push(c);hud()}
+function dropCmp(c){cmps=cmps.filter(x=>x!==c);c.p.cmp=null;c.p.bub=null;hud()}
+function openCmp(c){$('dq').textContent=c.q.q;const o=$('do');o.innerHTML='';
+ c.q.o.forEach(op=>{const b=document.createElement('button');b.textContent=op[0]+'  ['+(op[1]?'🪙'+(op[1]>0?'+':'')+op[1]+' ':'')+'⭐'+(op[2]>0?'+':'')+op[2]+']';
+  b.onclick=()=>{coins=Math.max(0,coins+op[1]);rep=Math.max(0,Math.min(100,rep+op[2]));if(op[1]>0)gen+=op[1];dropCmp(c);addXp(15);$('dlg').style.display='none';toast(tt('Verdict given ✔'));save()};o.appendChild(b)});
+ const x=document.createElement('button');x.textContent=tt('Later');x.onclick=()=>{$('dlg').style.display='none'};o.appendChild(x);$('dlg').style.display='flex'}
+function econ(dt){eAcc+=dt;if(eAcc>=120){eAcc-=120;const d0=day;newDay();day=d0}
+ {const act=bl.filter(b=>b.bt>0).slice(0,builders());for(const b of bl){if(b.bt>0){if(act.includes(b)){b.bt-=dt;if(b.bt<=0){b.bt=0;doneB(b);toast('✅ '+ITEM[b.t].n+tt(' construction finished!'));utT=0}}}else if(b.t=='mine')advMine(b,dt)}}
+ utT-=dt;if(utT<=0){utT=1.5;calcUtil();renderStat();tutCheck()}
+ for(const b of bl)if(b.t=='shop'){b.rt-=dt;if(b.rt<=0){b.rt=12;if(b.stock<12)b.stock++}}
+ cmpT-=dt;if(cmpT<=0){cmpT=60+rnd()*60;if(people.length>=2)newCmp()}
+ for(const c of cmps.slice()){c.t-=dt;if(c.t<=0){rep=Math.max(0,rep-3);dropCmp(c);toast(tt('Complaint ignored ⭐-3'))}}
+ sv-=dt;if(sv<=0){sv=15;save()}
+ rt2-=dt;if(rt2<=0){rt2=30;rate=rate*.6+gen*2*.4;gen=0}}
+
+// ================= pathfinding =================
+const D4=[[1,0],[-1,0],[0,1],[0,-1]];
+const FPd=new Float32Array(N*N),FPp=new Int32Array(N*N),FPs=new Uint32Array(N*N),FPn=new Uint32Array(N*N),HK=[],HV=[];let FPg=0;
+function hpush(k,v){let i=HK.length;HK.push(k);HV.push(v);while(i>0){const p=(i-1)>>1;if(HK[p]<=k)break;HK[i]=HK[p];HV[i]=HV[p];i=p}HK[i]=k;HV[i]=v}
+function hpop(){const rv=HV[0],lk=HK.pop(),lv=HV.pop(),n=HK.length;if(n){let i=0;for(;;){let a=i*2+1;if(a>=n)break;if(a+1<n&&HK[a+1]<HK[a])a++;if(HK[a]>=lk)break;HK[i]=HK[a];HV[i]=HV[a];i=a}HK[i]=lk;HV[i]=lv}return rv}
+function findPath(sx,sz,tx,tz){
+ const s=sz*N+sx,t=tz*N+tx;FPg++;HK.length=0;HV.length=0;FPd[s]=0;FPs[s]=FPg;FPp[s]=-1;hpush(Math.abs(sx-tx)+Math.abs(sz-tz),s);
+ while(HK.length){const u=hpop();if(FPn[u]===FPg)continue;FPn[u]=FPg;if(u===t)break;const ux=u%N,uz=(u/N)|0,du=FPd[u];
+  for(let q=0;q<4;q++){const vx=ux+D4[q][0],vz=uz+D4[q][1];if(vx<0||vz<0||vx>=N||vz>=N)continue;const v=vz*N+vx;if(!walk[v]&&v!==t)continue;const nd=du+cost[v];if(FPs[v]!==FPg||nd<FPd[v]){FPd[v]=nd;FPs[v]=FPg;FPp[v]=u;hpush(nd+Math.abs(vx-tx)+Math.abs(vz-tz),v)}}}
+ if(FPs[t]!==FPg||FPn[t]!==FPg)return null;const path=[];for(let c=t;c!==-1;c=FPp[c])path.push([c%N+.5,((c/N)|0)+.5]);path.reverse();return path}
+
+function nearestWalk(x,z){for(let r=0;r<12;r++)for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++){const a=x+dx,b=z+dz;if(inb(a,b)&&walk[b*N+a])return[a,b]}for(let i=0;i<N*N;i++)if(walk[i])return[i%N,(i/N)|0];return[1,1]}
+const SKIN=['#f1c27d','#e0ac69','#c68642','#8d5524','#ffdbac'],HAIR=['#2b1b10','#5a3a1a','#8a5a2a','#d9b25a','#1a1a1a','#a83a1a','#e8e0d0'],SHIRT=['#d94a46','#4472d4','#52b04c','#f2c230','#9150c8','#ee8a2b','#3aa6a6','#ee90b6','#e8e0d0','#6a7a3a'],PANT=['#3a4a8a','#5a4028','#4a4a4a','#2a3a5a','#6a5a3a'];
+const pick=a=>a[Math.floor(rnd()*a.length)];
+const PHR=['Hello!','Nice day!','To the market!','Fresh bread, mmm','I love this village','Look, the fountain!','Going shopping','See you!','So many stalls!','Hi there!'],MPHR=['Fresh goods!','Best price!','Come, buy!','Shiny gems here!','Warm bread!','Thank you!'];
+function mkLook(kid){return{skin:pick(SKIN),hair:pick(HAIR),shirt:pick(SHIRT),pants:pick(PANT),hat:(!kid&&rnd()<.22)?(rnd()<.6?'straw':'cap'):'',kid:kid}}
+
+function updPeople(dt){decBudget=GX.ratio>1.5?0:1;
+ for(const p of people){
+  if(p.bub){p.bub.t-=dt;if(p.bub.t<=0)p.bub=p.cmp?{text:'❗',t:1e9}:null}
+  if(p.merch){const tgt=night>.88?0:1;p.alpha+=(tgt-p.alpha)*Math.min(1,dt*2);p.fr+=dt;continue}
+  if(p.hidden){if(p.sleep){if(night<.35){p.sleep=false;p.t=0}}else{p.t-=dt}
+   if(!p.sleep&&p.t<=0&&night<.5){p.hidden=false;p.alpha=0;p.x=p.home.out[0]+.5;p.z=p.home.out[1]+.5;p.state='idle';p.t=.5+rnd()*2}continue}
+  if(p.alpha<1)p.alpha=Math.min(1,p.alpha+dt*3);
+  if(p.state=='idle'){p.fr+=dt*.5;p.t-=dt;
+   if(p.tmp){if(p.t<=0)go(p,[p.car.bay?p.car.bay.x:0,p.car.bay?p.car.bay.z:0],{k:'car'})}
+   else if(night>.55&&!p.going){p.going=true;const cp=!p.job&&p.cn!==day&&bl.find(b=>b.t=='camp'&&!b.bt&&b.spots);if(cp&&rnd()<.6){p.cn=day;go(p,cp.spots[Math.floor(rnd()*cp.spots.length)],{k:'chat',b:cp})}else go(p,p.home.out,{k:'home'})}
+   else if(p.t<=0){if(night<.5){if(decBudget>0){decBudget--;p.going=false;decide(p)}else p.t=.05}else p.t=2}}
+  else if(p.state=='work'){p.fr+=dt*.8;p.t-=dt;if(p.t<=0||night>.55)finishWork(p)}
+  else if(p.state=='chat'){p.t-=dt;if(!p.bub&&rnd()<dt*.35)p.bub={text:['😄','💬','🍢','🎶','🔥'][Math.floor(rnd()*5)],t:2};if(p.t<=0){p.state='idle';p.going=false;p.t=.2}}
+  else if(p.state=='fish'){p.fr+=dt*.5;p.t-=dt;if(p.t<=0||night>.55)finishFish(p)}
+  else if(p.state=='sit'){p.fr+=dt*.5;p.t-=dt;if(!p.bub&&rnd()<dt*.2)p.bub={text:['🍵','💬','😄'][Math.floor(rnd()*3)],t:2};if(p.t<=0||night>.55){if(p.seat)p.seat.p=null;p.seat=null;p.sit=false;p.state='idle';p.t=.5+rnd();p.going=false}}
+  else if(p.state=='walk'){const wp=p.path[p.pi];let tx=wp[0]+p.ox,tz=wp[1]+p.oz;const dx=tx-p.x,dz=tz-p.z,d=Math.hypot(dx,dz),step=p.spd*dt;p.fr+=dt*10;
+   if(d<=step){p.x=tx;p.z=tz;p.pi++;if(p.pi>=p.path.length)arrive(p)}
+   else{p.x+=dx/d*step;p.z+=dz/d*step;p.fdx=dx;p.fdz=dz}}
+ }
+ for(const c of chickens){c.t-=dt;const dx=c.tx-c.x,dz=c.tz-c.z,d=Math.hypot(dx,dz);
+  if(d>.05){const s=Math.min(d,.7*dt);c.x+=dx/d*s;c.z+=dz/d*s;c.fr+=dt*14;c.fdx=dx;c.fdz=dz}
+  else if(c.t<=0){c.t=1+rnd()*3;const a=c.pen?c.hx+Math.floor(rnd()*3)-1:c.hx+Math.floor(rnd()*7)-3,b=c.pen?c.hz+Math.floor(rnd()*2):c.hz+Math.floor(rnd()*7)-3;if(inb(a,b)&&cwalk[b*N+a]){c.tx=a+.2+rnd()*.6;c.tz=b+.2+rnd()*.6}}}
+}
+
+// ================= camera / view =================
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+let VW=innerWidth,VH=innerHeight,DPR=1;
+const cam={fx:N/2,fz:N/2,zoom:.55,ang:0};
+function defZoom(){return VW<700?.42:.75}
+cam.zoom=defZoom();
+function resize(){DPR=GX.dpr();VW=innerWidth||360;VH=innerHeight||640;cv.width=Math.round(VW*DPR);cv.height=Math.round(VH*DPR)}
+addEventListener('resize',resize);resize();
+let _ra=NaN,_rc=1,_rs=0;function _tg(a){if(a!==_ra){_ra=a;_rc=Math.cos(a);_rs=Math.sin(a)}}
+function rot(x,z,r){_tg(r);const dx=x-N/2,dz=z-N/2;return[dx*_rc-dz*_rs+N/2,dx*_rs+dz*_rc+N/2]}
+function unrot(x,z,r){_tg(r);const dx=x-N/2,dz=z-N/2;return[dx*_rc+dz*_rs+N/2,-dx*_rs+dz*_rc+N/2]}
+function projXY(fx,fz,fh){const q=rot(fx,fz,cam.ang);return[(q[0]-q[1])*32,(q[0]+q[1])*16-(fh-1)*32]}
+let cX=0,cY=0;
+function toScr(fx,fz,fh){const p=projXY(fx,fz,fh);return[(p[0]-cX)*cam.zoom+VW/2,(p[1]-cY)*cam.zoom+VH/2]}
+function setFocusFromProj(X,Y){Y+=32;const rx=(X/32+Y/16)/2,rz=(Y/16-X/32)/2,w=unrot(rx,rz,cam.ang);cam.fx=Math.max(-6,Math.min(N+6,w[0]));cam.fz=Math.max(-6,Math.min(N+6,w[1]))}
+// ================= time of day =================
+const CYC=600;   // 600s = 10 min full day: 5 min day -> night, 5 min night -> day
+let tod=.42,tmode=0,night=0,light=1;
+function updTime(dt){if(tmode==0){const t0=tod;tod=(tod+dt/CYC)%1;if(tod<t0)day++}else{   // tmode 1 = ad-skip: fast-forward (forward only) to bright morning, then back to normal time
+  const tg=.33,d=(tg-tod+1)%1,stp=Math.min(d,dt*.2),t0=tod;tod=(tod+stp)%1;if(tod<t0)day++;if(d-stp<1e-4){tod=tg;tmode=0}}
+ const br=.5-.5*Math.cos(tod*Math.PI*2);light=Math.max(0,Math.min(1,(br-.18)/.5));night=1-light}
+// ================= drawing people =================
+function drawHuman(c,X,Y,p,moving){
+ const L=p.look,sc=(L.kid?.72:1)*.82,u=2.1*sc,front=p.face.sy>=0,sh=p.face.sx<0?-1:1,sw=moving?Math.sin(p.fr):0,bob=moving?Math.abs(Math.cos(p.fr))*.8:Math.sin(p.fr*2)*.25;
+ c.globalAlpha=p.alpha;
+ c.fillStyle='rgba(0,0,0,.28)';c.beginPath();c.ellipse(X,Y,6.5*sc*1.7,3*sc*1.7,0,0,6.3);c.fill();
+ const dr=p.sit?5:0,R=(gx,gy,w,h,col)=>{c.fillStyle=col;c.fillRect(X+gx*u,Y-(gy+h+bob-dr)*u,w*u,h*u)};
+ const sk=L.skin,shirt=L.shirt;
+ // legs (lift alternately)
+ const ll=Math.max(0,sw)*3,rl=Math.max(0,-sw)*3;
+ if(p.sit){R(-4,5,4,6,L.pants);R(0,5,4,6,L.pants);R(-4,4.99,4,2,'#2a2018');R(0,4.99,4,2,'#2a2018')}else{R(-4,ll,4,11,L.pants);R(0,rl,4,11,L.pants);R(-4,ll-.01,4,2,'#2a2018');R(0,rl-.01,4,2,'#2a2018')}
+ // body
+ R(-4,11,8,12,shirt);
+ if(L.apron){R(-3,8.5,6,13,L.apron);R(-3,19,6,2,'#fff');}
+ else if(front){R(-4,11,8,1.5,'rgba(0,0,0,.18)')}
+ // arms
+ const al=-sw*2,ar=sw*2;
+ R(-7,11+al,3,12,sk);R(-7,18+al,3,5,shirt);R(4,11+ar,3,12,sk);R(4,18+ar,3,5,shirt);
+ // head
+ R(-4,23,8,8,sk);
+ if(front){R(-4,28.5,8,2.5,L.hair);R(-4,25,1,5,L.hair);R(3,25,1,5,L.hair);
+  R(-2.5+sh*.7,26,1.4,1.6,'#222');R(1.1+sh*.7,26,1.4,1.6,'#222');R(-1+sh*.7,24,2,.9,'#a05a4a')}
+ else{R(-4,23,8,8,L.hair);R(-4,23,8,2,'rgba(0,0,0,.2)')}
+ if(L.hat=='straw'){R(-8,30,16,1.6,'#e8c85a');R(-4,31.4,8,3,'#d9b040');R(-4,31.4,8,.9,'#a8581f')}
+ else if(L.hat=='cap'){R(-4.5,30,9,2.5,'#c0392b');if(front)R(-4.5,29.5,9,1,'#8a2a20')}
+ c.globalAlpha=1}
+// simpler villager for far-away views: about 8 shapes instead of 25 (you cannot see the difference when zoomed out)
+let LODON=false;
+function drawHumanLOD(c,X,Y,p,moving){
+ const L=p.look,sc=(L.kid?.72:1)*.82,u=2.1*sc,front=p.face.sy>=0,bob=moving?Math.abs(Math.cos(p.fr))*.8:0,dr=p.sit?5:0,Z=Y-(bob-dr)*u;
+ c.globalAlpha=p.alpha;
+ c.fillStyle='rgba(0,0,0,.26)';c.fillRect(X-5.2*sc*1.7,Y-1.6*sc*1.7,10.4*sc*1.7,3.2*sc*1.7);
+ c.fillStyle=L.pants;c.fillRect(X-4*u,Z-11*u,8*u,11*u);
+ c.fillStyle=L.shirt;c.fillRect(X-4*u,Z-23*u,8*u,12*u);
+ c.fillStyle=L.skin;c.fillRect(X-7*u,Z-23*u,3*u,12*u);c.fillRect(X+4*u,Z-23*u,3*u,12*u);
+ c.fillRect(X-4*u,Z-31*u,8*u,8*u);
+ c.fillStyle=L.hair;if(front)c.fillRect(X-4*u,Z-31*u,8*u,2.5*u);else c.fillRect(X-4*u,Z-31*u,8*u,8*u);
+ if(L.hat=='straw'){c.fillStyle='#e8c85a';c.fillRect(X-8*u,Z-31.6*u,16*u,4.6*u)}else if(L.hat=='cap'){c.fillStyle='#c0392b';c.fillRect(X-4.5*u,Z-32.5*u,9*u,2.5*u)}
+ c.globalAlpha=1}
+function drawChicken(c,X,Y,k){const b=Math.abs(Math.sin(k.fr))*.8,u=2.1,sh=k.face.sx<0?-1:1;
+ c.fillStyle='rgba(0,0,0,.25)';c.beginPath();c.ellipse(X,Y,5,2.2,0,0,6.3);c.fill();
+ const R=(gx,gy,w,h,col)=>{c.fillStyle=col;c.fillRect(X+gx*sh*u-(sh<0?w*u:0),Y-(gy+h+b)*u,w*u,h*u)};
+ R(-1,0,1,3,'#e8a030');R(1.5,0,1,3,'#e8a030');R(-3,3,7,5,'#f5f2ea');R(-3.5,5,2,3,'#e6e2d8');R(3,6,3,5,'#f5f2ea');R(4,10,2,1.4,'#d33');R(6,7.5,1.5,1.4,'#f0a020');R(4.5,8.5,.9,.9,'#111')}
+function drawGoat(c,X,Y,k){const b=Math.abs(Math.sin(k.fr))*.6,u=2.1,sh=k.face.sx<0?-1:1;c.fillStyle='rgba(0,0,0,.25)';c.beginPath();c.ellipse(X,Y,8,3,0,0,6.3);c.fill();
+ const R=(gx,gy,w,h,col)=>{c.fillStyle=col;c.fillRect(X+gx*sh*u-(sh<0?w*u:0),Y-(gy+h+b)*u,w*u,h*u)};
+ R(-4,0,1.4,4,'#cfc8b8');R(-1,0,1.4,4,'#bdb5a4');R(2,0,1.4,4,'#cfc8b8');R(4.5,0,1.4,4,'#bdb5a4');R(-5,4,11,5,'#f2eee4');R(5,7,4,5,'#f2eee4');R(8,9,2,2,'#ddd5c4');R(5.5,12,1,2,'#8a7a5a');R(7.5,12,1,2,'#8a7a5a');R(8.5,10,.8,.8,'#111');R(-6,6,1.4,2,'#f2eee4')}
+// ================= scene draw =================
+const decC=['#e8434a','#f5d03a','#ffffff','#b070f0','#ff9ac8','#5ac8f0'];
+function drawDecor(c,d){const p=projXY(d.x,d.z,2),X=p[0],Y=p[1];
+ if(d.k<4){c.fillStyle='#3d8a2c';c.fillRect(X-.5,Y-5,1.4,5);const col=decC[(d.k*2+Math.floor(d.x*3))%decC.length];c.fillStyle=col;c.fillRect(X-2.4,Y-8,4.8,3.4);c.fillStyle='#f6d24a';c.fillRect(X-.8,Y-6.8,1.6,1.4)}
+ else if(d.k==4){c.fillStyle='#3d8a2c';c.fillRect(X-3,Y-4,1.2,4);c.fillRect(X-.6,Y-6,1.2,6);c.fillRect(X+1.8,Y-4,1.2,4)}
+ else{c.fillStyle='#e8e0cc';c.fillRect(X-.8,Y-3,1.8,3);c.fillStyle='#d33';c.fillRect(X-2.6,Y-5.4,5.4,2.6);c.fillStyle='#fff';c.fillRect(X-1,Y-4.8,1,1)}}
+function faceOf(dx,dz){const a=cam.ang,c=Math.cos(a),s2=Math.sin(a),v0=dx*c-dz*s2,v1=dx*s2+dz*c;return{sx:v0-v1,sy:(v0+v1)*.5}}
+const screens=[];// for tap picking
+
+// ================= water / world cache / draw =================
+const WP0=(()=>{const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d');let s=7;const r=()=>(s=(s*16807)%2147483647)/2147483647;for(let i=0;i<46;i++){const x=r()*120,y=r()*124,w=8+r()*22;g.fillStyle='rgba(255,255,255,'+(.1+r()*.14)+')';g.fillRect(x,y,w,1.6);g.fillRect(x+2,y+3,w*.6,1.2)}return c})();
+let WPa=null,WPb=null,WPstat=0;
+function drawWater(z,tms,vx0,vx1,vy0,vy1){
+ const Wl=GX.P.water;
+ ctx.setTransform(DPR,0,0,DPR,0,0);ctx.fillStyle=mixC([8,22,66],[36,132,196],light);ctx.fillRect(0,0,VW,VH);
+ ctx.setTransform(z*DPR,0,0,z*DPR,Math.round(DPR*(VW/2-cX*z)),Math.round(DPR*(VH/2-cY*z)));
+ if(!WPa){WPa=ctx.createPattern(WP0,'repeat');WPb=ctx.createPattern(WP0,'repeat')}
+ try{if(Wl>0){WPa.setTransform(new DOMMatrix().translate(tms*7,tms*3));WPb.setTransform(new DOMMatrix().translate(-tms*4,tms*5).scale(1.6));WPstat=0}else if(!WPstat){WPa.setTransform(new DOMMatrix());WPstat=1}}catch(_){}
+ ctx.fillStyle=WPa;ctx.fillRect(vx0,vy0,vx1-vx0,vy1-vy0);
+ if(Wl>=2||(Wl==1&&GX.ratio<1.1)){ctx.globalAlpha=.6;ctx.fillStyle=WPb;ctx.fillRect(vx0,vy0,vx1-vx0,vy1-vy0);ctx.globalAlpha=1}
+ for(const o of[[2.4,.26],[1.1,.3]]){const A=N/2-LR(land)-3,Z=N/2+LR(land)+3,c=[[A-o[0],A-o[0]],[Z+o[0],A-o[0]],[Z+o[0],Z+o[0]],[A-o[0],Z+o[0]]].map(q=>projXY(q[0],q[1],1.25));ctx.fillStyle='rgba(170,240,238,'+o[1]+')';ctx.beginPath();c.forEach((a,i)=>i?ctx.lineTo(a[0],a[1]):ctx.moveTo(a[0],a[1]));ctx.closePath();ctx.fill()}}
+function drawEnt(g,it){const e=it[0],k=it[1];
+ if(k=='p'){const m=e.merch?false:e.state=='walk';if(m&&e.fdx!==undefined)e.face=faceOf(e.fdx,e.fdz);const fs=e.state=='fish'&&e.fd;if(fs)e.face=faceOf(e.fd[0],e.fd[1]);if(e.sit&&e.seat)e.face=faceOf(e.seat.dx,e.seat.dz);const pp=projXY(e.x,e.z,e.sit?2.5:2);(LODON?drawHumanLOD:drawHuman)(g,pp[0],pp[1],e,m);if(fs)drawRod(g,e);screens.push({e:e,kind:'p',x:pp[0],y:pp[1]})}
+ else if(k=='v')drawCar(g,e);
+  else if(k=='f')drawFurn(g,e);
+ else{if(e.fdx!==undefined)e.face=faceOf(e.fdx,e.fdz);const pp=projXY(e.x,e.z,2);(e.k=='g'?drawGoat:drawChicken)(g,pp[0],pp[1],e)}}
+const NN=N*N,COMB=new Float64Array(NN+4096),ENTL=[];
+let FA=1,FB=0,UX=32,UY=16,VX=-32,VY=16,SXF=1,SZF=1,LX=2,LZ=2;
+function frameBasis(){const a=cam.ang,ca=Math.cos(a),sa=Math.sin(a);FA=ca;FB=sa;UX=(ca-sa)*32;UY=(ca+sa)*16;VX=-(ca+sa)*32;VY=(ca-sa)*16;
+ SXF=(ca+sa)>=0?1:-1;SZF=(ca-sa)>=0?1:-1;
+ const lv=q=>Math.max(0,Math.min(4,Math.round((Math.max(.6,Math.min(.84,q))-.6)/.06)));
+ LX=lv(.73+.09*SXF*(sa-ca));LZ=lv(.73+.09*SZF*(ca+sa))}
+function renderWorld(g,S,TX,TY,vx0,vx1,vy0,vy1,ents,sm){
+ frameBasis();const x0=projXY(0,0,1),XB=x0[0],YB=x0[1],c=N/2,KX=FA+FB,KZ=FA-FB,R=LR(land),decor=GX.P.decor;
+ let n=0;
+ const Rg=R+3,lo=Math.max(0,Math.floor(c-Rg-1)),hi=Math.min(N-1,Math.ceil(c+Rg+1));   // locked land stays hidden under clouds: never drawn (big speed-up)
+  for(let wz=lo;wz<=hi;wz++)for(let wx=lo;wx<=hi;wx++){if(Math.abs(wx+.5-c)>Rg||Math.abs(wz+.5-c)>Rg)continue;const ty=TOP[wz*N+wx],Xc=XB+(wx+.5)*UX+(wz+.5)*VX,Yc=YB+(wx+.5)*UY+(wz+.5)*VY;
+  if(Xc<vx0-48||Xc>vx1+48||Yc-ty*32-64>vy1||Yc+64<vy0)continue;
+  COMB[n++]=Math.floor((KX*(wx+.5-c)+KZ*(wz+.5-c)+N+8)*8)*32768+wz*N+wx}
+ let ne=0;
+ if(ents)for(const it of ents){if(ne>=4000)break;const e=it[0],sp=projXY(e.x,e.z,2);if(sp[0]<vx0||sp[0]>vx1||sp[1]<vy0||sp[1]>vy1+100)continue;
+  const tx=Math.floor(e.x),tz=Math.floor(e.z),key=KX*(tx+.5-c)+KZ*(tz+.5-c)+N+.07;COMB[n++]=Math.floor((key+8)*8)*32768+NN+ne;ENTL[ne++]=it}
+ const sub=COMB.subarray(0,n);sub.sort();
+ g.imageSmoothingEnabled=sm;
+ for(let q=0;q<n;q++){const id=sub[q]%32768;
+  if(id>=NN){g.setTransform(S,0,0,S,TX,TY);drawEnt(g,ENTL[id-NN]);continue}
+  const wx=id%N,wz=(id/N)|0,ty=TOP[id],dark=(Math.abs(wx+.5-c)>R||Math.abs(wz+.5-c)>R)?1:0,ox=XB+wx*UX+wz*VX,oy=YB+wx*UY+wz*VY;
+  for(let y=0;y<=ty;y++){const i=(y*N+wz)*N+wx,t=B[i];if(!t)continue;const base=oy-y*32;
+   if(y+1>=HM||!B[i+NN]){g.setTransform(UX*1.04/16*S,UY*1.04/16*S,VX*1.04/16*S,VY*1.04/16*S,(ox-.02*(UX+VX))*S+TX,(base-.02*(UY+VY))*S+TY);g.drawImage(getTex(t,0,0,dark),0,0)}
+   const nx=SXF>0?(wx+1<N?B[i+1]:0):(wx>0?B[i-1]:0);
+   if(!nx){const fx=SXF>0?ox+UX:ox,fy=SXF>0?base+UY:base;g.setTransform(VX*1.04/16*S,VY*1.04/16*S,0,2.08*S,(fx-.02*VX)*S+TX,(fy-.02*VY-.64)*S+TY);g.drawImage(getTex(t,1,LX,dark),0,0)}
+   const nzz=SZF>0?(wz+1<N?B[i+N]:0):(wz>0?B[i-N]:0);
+   if(!nzz){const fx=SZF>0?ox+VX:ox,fy=SZF>0?base+VY:base;g.setTransform(UX*1.04/16*S,UY*1.04/16*S,0,2.08*S,(fx-.02*UX)*S+TX,(fy-.02*UY-.64)*S+TY);g.drawImage(getTex(t,1,LZ,dark),0,0)}}
+  const fn=FNC.get(id),dl=decor?DECT.get(id):null,gold=!dark&&ty<=1&&Math.max(Math.abs(wx+.5-c),Math.abs(wz+.5-c))>R-1.01;
+  if(dl||gold||fn){g.setTransform(S,0,0,S,TX,TY);
+   if(gold){g.strokeStyle='#ffd54a';g.lineWidth=3;g.lineCap='round';const hh=ty*32,px=(a,b)=>XB+a*UX+b*VX,py=(a,b)=>YB+a*UY+b*VY-hh,ed=[[wx,wz,wx+1,wz,wx,wz-1],[wx+1,wz,wx+1,wz+1,wx+1,wz],[wx,wz+1,wx+1,wz+1,wx,wz+1],[wx,wz,wx,wz+1,wx-1,wz]];
+    for(const e of ed){if(!inb(e[4],e[5]))continue;if(!own(e[4],e[5])){g.beginPath();g.moveTo(px(e[0],e[1]),py(e[0],e[1]));g.lineTo(px(e[2],e[3]),py(e[2],e[3]));g.stroke()}}}
+   if(fn)drawFence(g,fn);if(dl)for(const dd of dl)drawDecor(g,dd)}}
+ g.setTransform(S,0,0,S,TX,TY);return n}
+// ---- tile cache (gfx.js): the still world (ground, houses, trees, fences, flowers) is painted ONCE into small picture tiles.
+// Every frame only the few tiles on screen are copied, so the full 100x100 map costs the same as a tiny one.
+// Only tiles whose blocks really changed (new house, new road...) are painted again.
+if(GX.TC)GX.TC.init({bx0:-N*32-90,bx1:N*32+90,by0:-540,by1:N*32+140,render:(g,S,TX,TY,x0,x1,y0,y1,mode,sm)=>{SKIPSEAT=true;let n=0;try{n=renderWorld(g,S,TX,TY,x0,x1,y0,y1,furnL.map(f=>[f,'f']),sm)}finally{SKIPSEAT=false}return n>0}});
+const Bold=new Uint8Array(N*N*HM),occOld=new Uint8Array(N*N);let fncOld=new Set();
+function wMark(x,z,h){if(!GX.TC||!GX.TC.hasSet())return;frameBasis();const p0=projXY(0,0,1),ox=p0[0]+x*UX+z*VX,oy=p0[1]+x*UY+z*VY;GX.TC.markRect(ox-110,oy-(h+1)*32-64,ox+110,oy+76)}
+function tcBefore(){Bold.set(B);occOld.set(occ);fncOld=new Set(FNC.keys())}
+function tcAfter(){if(!GX.TC||!GX.TC.hasSet())return;
+ const NNc=N*N,top=new Int8Array(NNc);let cnt=0;
+ for(let y=0;y<HM;y++){const o=y*NNc;for(let k=0;k<NNc;k++)if(B[o+k]!==Bold[o+k])top[k]=y+1}
+ for(let k=0;k<NNc;k++){if(!top[k]&&occ[k]!==occOld[k])top[k]=1;if(top[k])cnt++}
+ for(const k of fncOld)if(!FNC.has(k)){if(!top[k])cnt++;top[k]=Math.max(top[k],3)}
+ for(const k of FNC.keys())if(!fncOld.has(k)){if(!top[k])cnt++;top[k]=Math.max(top[k],3)}
+ if(cnt>500){GX.TC.invalidateAll();return}
+ if(!cnt)return;
+ for(let k=0;k<NNc;k++)if(top[k])wMark(k%N,(k/N)|0,top[k])}
+// a villager / car is hidden behind a tall block when one stands right in front of it (what the old full redraw did automatically)
+function occl(x,z){const tx=Math.floor(x),tz=Math.floor(z);if(tx<0||tz<0||tx>=N||tz>=N)return 1;const h0=TOP[tz*N+tx];let o=0;
+ for(let q=0;q<3;q++){const dx=q==1?0:SXF,dz=q==0?0:SZF,nx=tx+dx,nz=tz+dz;if(nx<0||nz<0||nx>=N||nz>=N)continue;if(TOP[nz*N+nx]-h0<2)continue;
+  const ex=dx?(dx>0?nx-x:x-(nx+1)):0,ez=dz?(dz>0?nz-z:z-(nz+1)):0,d=Math.hypot(ex<0?0:ex,ez<0?0:ez),p=1-d*1.7;if(p>o)o=p}
+ return o>0?(o>=1?0:1-o):1}
+function hullOf(pts){pts=pts.slice().sort((a,b)=>a[0]-b[0]||a[1]-b[1]);const cr=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]),lo=[],up=[];
+ for(const p of pts){while(lo.length>1&&cr(lo[lo.length-2],lo[lo.length-1],p)<=0)lo.pop();lo.push(p)}
+ for(let i=pts.length-1;i>=0;i--){const p=pts[i];while(up.length>1&&cr(up[up.length-2],up[up.length-1],p)<=0)up.pop();up.push(p)}
+ lo.pop();up.pop();return lo.concat(up)}
+function drawLand(){const r=LR(land),a=N/2-r,b=N/2+r,P=(x,z)=>projXY(x,z,1.1),ex=[[0,0],[N,0],[N,N],[0,N]].map(q=>P(q[0],q[1])),iq=[[a,a],[b,a],[b,b],[a,b]].map(q=>P(q[0],q[1]));
+ ctx.save();ctx.beginPath();ex.forEach((q,i)=>i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]));ctx.closePath();iq.forEach((q,i)=>i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]));ctx.closePath();ctx.fillStyle='rgba(18,22,40,.4)';ctx.fill('evenodd');
+ ctx.beginPath();iq.forEach((q,i)=>i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]));ctx.closePath();ctx.setLineDash([12,8]);ctx.lineWidth=3;ctx.strokeStyle='#ffd54a';ctx.stroke();ctx.restore()}
+function drawNeed(){if(!needP.size)return;const now=performance.now(),pu=.5+.5*Math.sin(now/260);
+ for(const [k,v] of needP){if(now-v.t>45000){needP.delete(k);continue}
+  const p=projXY(v.x+.5,v.z+.5,2),X=p[0],Y=p[1];ctx.fillStyle='rgba('+(v.s?'255,150,40':'255,214,0')+','+(.35+.3*pu)+')';ctx.beginPath();ctx.moveTo(X,Y-16);ctx.lineTo(X+32,Y);ctx.lineTo(X,Y+16);ctx.lineTo(X-32,Y);ctx.closePath();ctx.fill();
+  ctx.font='bold 24px sans-serif';ctx.textAlign='center';ctx.fillStyle='#000';ctx.fillText(v.s?'🚶':'📍',X,Y-18-pu*6)}}
+// ================= clouds over the locked land · fences =================
+// Land you have not unlocked is covered by soft clouds (and is not even drawn, which makes the game lighter). Unlock land and the clouds roll back.
+const CLS=[];function cloudSpr(v){if(CLS[v])return CLS[v];const c=document.createElement('canvas');c.width=200;c.height=120;const g=c.getContext('2d');
+ const B=[[100,74,46],[60,80,34],[142,80,36],[80,50,32],[120,52,30],[36,90,22],[166,90,22],[100,40,24]].map((b,i)=>[b[0]+((v*13+i*7)%9-4),b[1]+((v*5+i*11)%7-3),b[2]+((v*3+i)%5-2)]);
+ g.fillStyle='#c9d6e6';for(const b of B){g.beginPath();g.arc(b[0],b[1]+7,b[2],0,6.3);g.fill()}
+ g.fillStyle='#f4f8fd';for(const b of B){g.beginPath();g.arc(b[0],b[1],b[2],0,6.3);g.fill()}
+ g.fillStyle='#fff';for(const b of B){g.beginPath();g.arc(b[0]-b[2]*.15,b[1]-b[2]*.22,b[2]*.62,0,6.3);g.fill()}
+ return CLS[v]=c}
+let cR=-1,cT=0,CLL=[],CLkey='';
+// cloud ring around the island: only OUTSIDE the land you own (and outside the buildings' height), so the village is always visible
+function cloudLayout(R){const rings=GX.P.rings,c=N/2,L=[];
+ for(let k=0;k<rings;k++){const rk=R+1.3+k*1.9,st=2.5+k*.3,cnt=Math.max(10,Math.round(8*rk/st));
+  for(let i=0;i<cnt;i++){const t=i/cnt*4,sd=t|0,u=(t-sd)*2-1;let x,zz;if(sd==0){x=u*rk;zz=-rk}else if(sd==1){x=rk;zz=u*rk}else if(sd==2){x=-u*rk;zz=rk}else{x=-rk;zz=-u*rk}
+   const hs=Math.abs(Math.sin((i+1)*12.9898+k*78.233)*43758.5453)%1;L.push({x:c+x,z:c+zz,k:k,hs:hs,s:(i+k)%3,w:112+hs*58,rk:rk})}}
+ return L}
+function drawClouds(tms,vx0,vx1,vy0,vy1){const R=LR(land);if(cR<0)cR=R;const dt=Math.min(.1,Math.max(0,tms-cT));cT=tms;cR+=(R-cR)*Math.min(1,dt*1.6);if(Math.abs(R-cR)<.02)cR=R;
+ const key=GX.P.rings+'|'+cR.toFixed(2);if(key!==CLkey){CLL=cloudLayout(cR);CLkey=key}
+ const c=N/2,cy0=projXY(c,c,2)[1],anim=GX.P.cloudAnim,a=c-cR-.45,b=c+cR+.45,hp=[];
+ for(const q of[[a,a],[b,a],[b,b],[a,b]]){const p=projXY(q[0],q[1],1.1);hp.push(p,[p[0],p[1]-170])}
+ const hull=hullOf(hp);
+ ctx.save();ctx.beginPath();ctx.rect(vx0-420,vy0-420,vx1-vx0+840,vy1-vy0+840);hull.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.closePath();ctx.clip('evenodd');
+ let al=-1;
+ for(const o of CLL){let P=projXY(o.x,o.z,2.25+o.k*.3),px=P[0],py=P[1];
+  if(px<vx0-140||px>vx1+140||py<vy0-120||py>vy1+140)continue;
+  if(anim){px+=Math.sin(tms*.25+o.hs*6)*14;py+=Math.cos(tms*.2+o.hs*5)*9+Math.sin(tms*.5+o.hs*9)*2.2}
+  const w=o.w,h=w*.6,f=Math.max(-1,Math.min(1,(py-cy0)/(o.rk*32+1))),A=o.k<2?1:o.k==2?.9:.75;
+  if(A!==al){ctx.globalAlpha=A;al=A}
+  ctx.drawImage(cloudSpr(o.s),px-w/2,py-h*(.68-f*.4),w,h)}
+ ctx.restore();ctx.globalAlpha=1}
+// smooth mesh garden fence: silver posts, top rail and a fine diamond net; connects to the next fence tile by itself
+function drawFence(g,f){const k=Math.floor(f.z)*N+Math.floor(f.x),H0=2.02,H1=2.5,c0=projXY(f.x,f.z,H0),c1=projXY(f.x,f.z,H1);g.lineCap='round';
+ for(const q of D4){if(!FNC.has(k+q[1]*N+q[0]))continue;const mx=f.x+q[0]*.5,mz=f.z+q[1]*.5,b1=projXY(mx,mz,H0),t1=projXY(mx,mz,H1);
+  g.fillStyle='rgba(225,238,250,.2)';g.beginPath();g.moveTo(c0[0],c0[1]);g.lineTo(b1[0],b1[1]);g.lineTo(t1[0],t1[1]);g.lineTo(c1[0],c1[1]);g.closePath();g.fill();
+  g.strokeStyle='rgba(246,250,254,.9)';g.lineWidth=.6;g.beginPath();
+  for(let i=0;i<3;i++){const a=i/3,b=(i+1)/3,bx=t=>[c0[0]+(b1[0]-c0[0])*t,c0[1]+(b1[1]-c0[1])*t],tx=t=>[c1[0]+(t1[0]-c1[0])*t,c1[1]+(t1[1]-c1[1])*t];let p=bx(a),r=tx(b);g.moveTo(p[0],p[1]);g.lineTo(r[0],r[1]);p=bx(b);r=tx(a);g.moveTo(p[0],p[1]);g.lineTo(r[0],r[1])}g.stroke();
+  g.strokeStyle='#f8fafc';g.lineWidth=1.3;g.beginPath();g.moveTo(c1[0],c1[1]);g.lineTo(t1[0],t1[1]);g.stroke();
+  g.strokeStyle='#a9b4c2';g.lineWidth=.9;g.beginPath();g.moveTo(c0[0],c0[1]);g.lineTo(b1[0],b1[1]);g.stroke()}
+ g.strokeStyle='#8c97a6';g.lineWidth=2.1;g.beginPath();g.moveTo(c0[0],c0[1]);g.lineTo(c1[0],c1[1]);g.stroke();g.fillStyle='#eef2f7';g.beginPath();g.arc(c1[0],c1[1]-.8,1.5,0,6.3);g.fill()}
+let fenceDirty=false;
+// drag with the Fence tool: places tile after tile without rebuilding the whole world each time
+function placeFence(x,z){const it=ITEM.fence,k=z*N+x;if(x<1||z<1||x>N-2||z>N-2||!own(x,z)||occ[k]||rd[k]||it.lv>level)return false;
+ const warn=m=>{if(!placeFence.w||Date.now()-placeFence.w>2500){placeFence.w=Date.now();toast(m)}};
+ if(bl.filter(b=>b.t=='fence').length>=limOf('fence')){warn(tt('🚫 Limit ')+limOf('fence')+tt(' only — level up to raise the limit'));return false}
+ if(coins<it.c){warn(tt('Not enough coins 🪙'));return false}
+ coins-=it.c;const b={id:uid++,t:'fence',x:x,z:z,f:0,s:0,g:0,cash:0,stock:6,rt:5,mst:'run',mt:7200,bank:0,bt:0,cx:x+.5,cz:z+.5,ih:2.6,cap:0};bl.push(b);occ[k]=1;FNC.set(k,{x:x+.5,z:z+.5});dirtyW=true;wMark(x,z,3);addXp(it.c*.3);hud();fenceDirty=true;return true}
+const GLOWS={};function glowSpr(big){const k=big?1:0;if(GLOWS[k])return GLOWS[k];const R=big?90:34,c=document.createElement('canvas');c.width=c.height=R*2;const g=c.getContext('2d'),gr=g.createRadialGradient(R,R,0,R,R,R);gr.addColorStop(0,'rgba(255,200,110,1)');gr.addColorStop(1,'rgba(255,170,70,0)');g.fillStyle=gr;g.fillRect(0,0,R*2,R*2);return GLOWS[k]=c}
+function draw(){
+ const z=cam.zoom,P=projXY(cam.fx,cam.fz,2);cX=P[0];cY=P[1]-20;const tms=performance.now()/1000;
+ const vx0=cX-VW/2/z-40,vx1=cX+VW/2/z+40,vy0=cY-VH/2/z-70,vy1=cY+VH/2/z+40;
+ drawWater(z,tms,vx0,vx1,vy0,vy1);
+ screens.length=0;
+ drawVess(false,z);
+
+ const angMov=Math.abs(cam.ang-prevAng)>1e-5;prevAng=cam.ang;
+ const tileOK=!!GX.TC&&!angMov&&Math.abs(cam.ang-angT)<1e-4;LODON=z<GX.P.lod;frameBasis();
+ const ents=[];
+ const add=(e,kind,fx,fz)=>{if(tileOK){const q=rot(fx,fz,cam.ang);ents.push([e,kind,q[0]+q[1]])}else ents.push([e,kind])};
+ if(!tileOK)for(const f of furnL)add(f,'f',f.x,f.z);
+ {const pc=GX.pcap();let pn=0;for(const p of people){if(p.hidden||p.alpha<=.02)continue;const sp=projXY(p.x,p.z,2);if(sp[0]<vx0||sp[0]>vx1||sp[1]<vy0||sp[1]>vy1+100)continue;if(++pn>pc)break;add(p,'p',p.x,p.z)}}
+ for(const c of chickens)add(c,'c',c.x,c.z);
+ for(const v of cars)add(v,'v',v.x,v.z);
+ const tileDone=tileOK&&GX.TC.frame(ctx,{S:z*DPR,TX:Math.round(DPR*(VW/2-cX*z)),TY:Math.round(DPR*(VH/2-cY*z)),W:cv.width,H:cv.height,ang:cam.ang,mode:GX.P.id+'|'+land,sm:z<1.25},performance.now());
+ if(tileDone){
+  for(const f of furnL)if(f.seats)drawSeats(f);
+  ents.sort((a,b)=>a[2]-b[2]);
+  for(const it of ents){const e=it[0],s=projXY(e.x,e.z,2);if(s[0]<vx0||s[0]>vx1||s[1]<vy0||s[1]>vy1+80)continue;
+   const oa=it[1]=='f'?1:occl(e.x,e.z);if(oa<.07)continue;
+   if(oa<1){if(it[1]=='p'){const a0=e.alpha;e.alpha=a0*oa;drawEnt(ctx,it);e.alpha=a0}else{ctx.globalAlpha=oa;drawEnt(ctx,it);ctx.globalAlpha=1}}else drawEnt(ctx,it)}}
+ else{renderWorld(ctx,z*DPR,Math.round(DPR*(VW/2-cX*z)),Math.round(DPR*(VH/2-cY*z)),vx0,vx1,vy0,vy1,ents,z<1.25)}
+ drawVess(true,z);drawNeed();drawClouds(tms,vx0,vx1,vy0,vy1);
+ if(pend){const it=pend.it,bk=blockers(it,pend.x,pend.z,facing),fr=frontOf(it,pend.x,pend.z,facing),bm=new Set(bk.map(q=>q.z*N+q.x));
+  const hl=(x,zz,col)=>{const p=projXY(x+.5,zz+.5,2),X=p[0],Y=p[1];ctx.fillStyle=col;ctx.beginPath();ctx.moveTo(X,Y-16);ctx.lineTo(X+32,Y);ctx.lineTo(X,Y+16);ctx.lineTo(X-32,Y);ctx.fill()};
+  for(let zz=pend.z;zz<pend.z+it.d;zz++)for(let x=pend.x;x<pend.x+it.w;x++)hl(x,zz,bm.has(zz*N+x)?'rgba(255,70,70,.6)':'rgba(80,255,110,.55)');
+  for(const q of bk)if(q.x<pend.x||q.x>=pend.x+it.w||q.z<pend.z||q.z>=pend.z+it.d)hl(q.x,q.z,'rgba(255,70,70,.45)');
+  if(fr)hl(fr[0],fr[1],'rgba(255,220,60,.7)');
+  ctx.font='22px serif';ctx.textAlign='center';for(const q of bk.slice(0,14)){const p=projXY(q.x+.5,q.z+.5,2.2);ctx.fillText(Array.from(q.w)[0],p[0],p[1]+8)}}
+ if(sel&&!pend&&bl.includes(sel)){const it=ITEM[sel.t];for(let zz=sel.z;zz<sel.z+it.d;zz++)for(let x=sel.x;x<sel.x+it.w;x++){const p=projXY(x+.5,zz+.5,2),X=p[0],Y=p[1];ctx.fillStyle='rgba(255,220,60,.5)';ctx.beginPath();ctx.moveTo(X,Y-16);ctx.lineTo(X+32,Y);ctx.lineTo(X,Y+16);ctx.lineTo(X-32,Y);ctx.closePath();ctx.fill()}}
+ if(rline){for(const q of rline.tiles){const p=projXY(q.x+.5,q.z+.5,2),X=p[0],Y=p[1];ctx.fillStyle=!q.ok?'rgba(255,70,70,.6)':q.same?'rgba(140,150,255,.5)':'rgba(80,255,110,.55)';ctx.beginPath();ctx.moveTo(X,Y-16);ctx.lineTo(X+32,Y);ctx.lineTo(X,Y+16);ctx.lineTo(X-32,Y);ctx.closePath();ctx.fill()}
+  const A=rline.tiles[0],Zt=rline.tiles[rline.tiles.length-1],a=projXY(A.x+.5,A.z+.5,2.12),e=projXY(Zt.x+.5,Zt.z+.5,2.12);
+  if(rline.tiles.length>1){const ang=Math.atan2(e[1]-a[1],e[0]-a[0]),h=18;ctx.lineCap='round';ctx.strokeStyle='#3a2a00';ctx.lineWidth=7;ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(e[0],e[1]);ctx.stroke();ctx.strokeStyle='#ffe066';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(e[0],e[1]);ctx.stroke();
+   ctx.fillStyle='#ffe066';ctx.strokeStyle='#3a2a00';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(e[0]+Math.cos(ang)*h*.8,e[1]+Math.sin(ang)*h*.8);ctx.lineTo(e[0]+Math.cos(ang+2.5)*h,e[1]+Math.sin(ang+2.5)*h);ctx.lineTo(e[0]+Math.cos(ang-2.5)*h,e[1]+Math.sin(ang-2.5)*h);ctx.closePath();ctx.fill();ctx.stroke()}
+  ctx.fillStyle='#3a8a2c';ctx.beginPath();ctx.arc(a[0],a[1],5,0,6.3);ctx.fill()}
+ ctx.setTransform(DPR,0,0,DPR,0,0);
+ if(night>.02){const dusk=1-Math.abs(light-.5)*2,base=mixA([92,108,168],[255,255,255],light),tint=mixA(base,[255,176,120],Math.max(0,dusk)*.38*(light<1?1:0));
+  ctx.globalCompositeOperation='multiply';ctx.fillStyle='rgb('+(tint[0]|0)+','+(tint[1]|0)+','+(tint[2]|0)+')';ctx.fillRect(0,0,VW,VH);
+  if(GX.P.glow>0){ctx.globalCompositeOperation='lighter';
+   for(const l of lights){if(!l.big&&(GX.P.glow<2||night<.25))continue;const s=toScr(l.x,l.z,l.h+1);if(s[0]<-80||s[0]>VW+80||s[1]<-80||s[1]>VH+80)continue;
+    const rad=(l.big?90:34)*z;ctx.globalAlpha=Math.min(1,night*1.3)*(l.big?.85:.55);ctx.drawImage(glowSpr(l.big),s[0]-rad,s[1]-rad,rad*2,rad*2)}ctx.globalAlpha=1}
+  ctx.globalCompositeOperation='source-over'}
+ coinSpots.length=0;
+ for(const b of bl){if(!(b.cash>=1))continue;const sp=toScr(b.cx,b.cz,b.ih),by=Math.sin(tms*3+b.cx)*3,rad=12*Math.max(.8,z*1.3);coinSpots.push({s:b,x:sp[0],y:sp[1]+by,r:rad});
+  ctx.fillStyle='rgba(0,0,0,.25)';ctx.beginPath();ctx.ellipse(sp[0],sp[1]+by+rad+3,rad*.8,rad*.3,0,0,6.3);ctx.fill();
+  ctx.fillStyle='#8a5a10';ctx.beginPath();ctx.arc(sp[0],sp[1]+by,rad+1.5,0,6.3);ctx.fill();ctx.fillStyle='#ffd54a';ctx.beginPath();ctx.arc(sp[0],sp[1]+by,rad,0,6.3);ctx.fill();
+  ctx.fillStyle='#fff3a0';ctx.beginPath();ctx.arc(sp[0]-rad*.25,sp[1]+by-rad*.25,rad*.45,0,6.3);ctx.fill();ctx.fillStyle='#7a4a00';ctx.font='bold '+Math.round(rad*.9)+'px ui-monospace,monospace';ctx.textAlign='center';ctx.fillText(Math.floor(b.cash),sp[0],sp[1]+by+rad*.32)}
+ ctx.font='bold 13px ui-monospace,monospace';ctx.textAlign='center';
+ for(const it of screens){const e=it.e;if(!e.bub)continue;const s=toScr(e.x,e.z,2),tw=ctx.measureText(tt(e.bub.text)).width+16,bx=s[0]-tw/2,by=s[1]-(e.merch?62:56)*z-26;
+  ctx.fillStyle='#fff';ctx.strokeStyle='#222';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect?ctx.roundRect(bx,by,tw,24,6):ctx.rect(bx,by,tw,24);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(s[0]-5,by+24);ctx.lineTo(s[0],by+31);ctx.lineTo(s[0]+5,by+24);ctx.fillStyle='#fff';ctx.fill();ctx.fillStyle='#222';ctx.fillText(tt(e.bub.text),s[0],by+17)}
+ for(let i=floaters.length-1;i>=0;i--){const f=floaters[i];f.t-=1/60;f.y-=.7;if(f.t<=0){floaters.splice(i,1);continue}ctx.globalAlpha=Math.min(1,f.t*2);ctx.fillStyle='#ffd54a';ctx.strokeStyle='#5a3a00';ctx.lineWidth=3;ctx.font='bold 18px ui-monospace,monospace';ctx.strokeText(f.s,f.x,f.y);ctx.fillText(f.s,f.x,f.y);ctx.globalAlpha=1}
+ if(rline){const Zt=rline.tiles[rline.tiles.length-1],s=toScr(Zt.x+.5,Zt.z+.5,2.6),txt='🪙'+rline.cost+' · '+rline.tiles.length+tt(' tiles')+(rline.tiles.some(q=>!q.ok)?' · 🔴 '+rline.tiles.find(q=>!q.ok).why:'');ctx.font='bold 13px ui-monospace,monospace';ctx.textAlign='center';const tw=ctx.measureText(txt).width+16,bx=s[0]-tw/2,by=s[1]-30;ctx.fillStyle='#fff7c2';ctx.strokeStyle='#3a2a00';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect?ctx.roundRect(bx,by,tw,24,6):ctx.rect(bx,by,tw,24);ctx.fill();ctx.stroke();ctx.fillStyle='#3a2a00';ctx.fillText(txt,s[0],by+17)}
+ if(pend){const it=pend.it,bk=blockers(it,pend.x,pend.z,facing);if(bk.length){const s=toScr(pend.x+it.w/2,pend.z+it.d/2,3.4),txt='✖ '+bk[0].w;ctx.font='bold 13px ui-monospace,monospace';ctx.textAlign='center';const tw=ctx.measureText(txt).width+16,bx=s[0]-tw/2,by=s[1]-34;ctx.fillStyle='#ffe3e3';ctx.strokeStyle='#7a0000';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect?ctx.roundRect(bx,by,tw,24,6):ctx.rect(bx,by,tw,24);ctx.fill();ctx.stroke();ctx.fillStyle='#5a0000';ctx.fillText(txt,s[0],by+17)}}
+ gmSpots.length=0;for(const b of bl)if(b.t=='mine'&&!b.bt&&b.bank>0){const sp=toScr(b.cx,b.cz,b.ih+1),by=Math.sin(tms*3)*3,rad=14*Math.max(.8,z*1.3);gmSpots.push({b:b,x:sp[0],y:sp[1]+by,r:rad});ctx.fillStyle='#0a4a6a';ctx.beginPath();ctx.arc(sp[0],sp[1]+by,rad+1.5,0,6.3);ctx.fill();ctx.fillStyle='#4fe3e0';ctx.beginPath();ctx.arc(sp[0],sp[1]+by,rad,0,6.3);ctx.fill();ctx.fillStyle='#043';ctx.font='bold '+Math.round(rad*.8)+'px ui-monospace,monospace';ctx.textAlign='center';ctx.fillText('GM',sp[0],sp[1]+by+rad*.3)}
+ ctx.font='bold 12px ui-monospace,monospace';ctx.textAlign='center';for(const b of bl)if(b.bt>0&&b.cx!==undefined){const sp=toScr(b.cx,b.cz,(b.ih||4)+.5),t=(bl.filter(q=>q.bt>0).indexOf(b)<builders()?'🔨 ':'⏳ ')+fmtT(b.bt),w=ctx.measureText(t).width+12;ctx.fillStyle='#000a';ctx.fillRect(sp[0]-w/2,sp[1]-14,w,20);ctx.fillStyle='#fff';ctx.fillText(t,sp[0],sp[1]+1)}
+ ctx.font='26px serif';for(const c of incs){const sp=toScr(c.b.cx,c.b.cz,(c.b.ih||7)+1);ctx.fillText({thief:'🦹',fire:'🔥',sick:'🤒'}[c.k],sp[0],sp[1]-6)}
+ if(WINTER&&GX.P.snow>0){const T=performance.now()/1000;ctx.fillStyle='rgba(255,255,255,.85)';for(let i=0,SN=GX.P.snow;i<SN;i++){const sp=.05+(i%5)*.02,X=(((i*97%100)/100*VW+Math.sin(T*.7+i)*18)%VW+VW)%VW,Y=((i*53%100)/100*VH+T*sp*VH)%VH,q=i%3?2:3;ctx.fillRect(X,Y,q,q)}}
+
+}
+
+const coinSpots=[],floaters=[],gmSpots=[];
+function mixA(a,b,t){return[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t]}
+function mixC(a,b,t){const m=mixA(a,b,t);return'rgb('+(m[0]|0)+','+(m[1]|0)+','+(m[2]|0)+')'}
+
+
+// ================= cars & parking =================
+const CARC=['#d94a46','#4472d4','#f2c230','#52b04c','#e8e0d0','#9150c8','#ee8a2b','#3aa6a6'];let cs=1;
+function carBusy(k,me){for(const c of cars)if(c!==me&&(c.ck==k||c.nk==k)){if(me&&c.ck==k&&c.nk==me.ck)continue;return true}return false}
+function carPath(sk,tk){const prev=new Int32Array(N*N).fill(-2),q=[sk];prev[sk]=-1;for(let h=0;h<q.length;h++){const u=q[h];if(u==tk)break;const ux=u%N,uz=(u/N)|0;for(const d of D4){const vx=ux+d[0],vz=uz+d[1];if(!inb(vx,vz))continue;const v=vz*N+vx;if(prev[v]!=-2)continue;if(rd[v]!=2&&v!=tk)continue;prev[v]=u;q.push(v)}}if(prev[tk]==-2)return null;const pth=[];for(let c=tk;c!=sk;c=prev[c])pth.push(c);pth.reverse();return pth}
+function killCar(c){const i=cars.indexOf(c);if(i>=0)cars.splice(i,1);if(c.bay&&c.bay.car===c)c.bay.car=null;for(let j=people.length-1;j>=0;j--)if(people[j].car===c)people.splice(j,1)}
+function parkCar(c){c.st='park';c.t=18+rnd()*15;c.ready=true;const l=c.lot,n=Math.min(l.cap,l.cash+3);gen+=n-l.cash;l.cash=n;
+ const sh=bl.filter(b=>b.t=='shop'&&b.stock>0);if(sh.length){c.ready=false;const b=sh[Math.floor(rnd()*sh.length)],p={x:c.bay.x+.5,z:c.bay.z+.5,path:null,pi:0,state:'idle',t:1,look:mkLook(false),home:l,spd:1.3,face:{sx:1,sy:1},fr:0,alpha:1,ox:0,oz:0,bub:null,hidden:false,sleep:false,wallet:20,tmp:1,car:c};people.push(p);go(p,b.front,{k:'shop',b:b})}}
+function updCars(dt){
+ cs-=dt;if(cs<=0){cs=2;let m=0;for(let i=0;i<N*N;i++)if(rd[i]==2)m++;const want=Math.min(GX.P.cars,Math.floor(m/6));
+  if(cars.length<want){const ml=[];for(let q=0;q<N*N;q++)if(rd[q]==2)ml.push(q);for(let t=0;t<12;t++){const k=ml[Math.floor(rnd()*ml.length)];if(!carBusy(k,null)){cars.push({x:k%N+.5,z:((k/N)|0)+.5,ck:k,nk:-1,dx:1,dz:0,st:'drive',col:CARC[Math.floor(rnd()*CARC.length)],path:null,wait:0,cool:rnd()*10,spd:1.9+rnd()*.6});break}}}
+  else if(cars.length>want){const c=cars.find(c=>c.st=='drive'&&!c.bay&&!c.resp&&!c.bus);if(c)killCar(c)}}
+ for(let i=cars.length-1;i>=0;i--){const c=cars[i];c.cool-=dt;
+  if(c.st=='park'){c.t-=dt;if(!bl.includes(c.lot)||!c.lot.bays.includes(c.bay)){killCar(c);continue}
+   if(c.t<=0&&(c.ready||c.t<-30)){const bk=c.bay.z*N+c.bay.x,nb=D4.map(d=>[inb(c.bay.x+d[0],c.bay.z+d[1]),(c.bay.z+d[1])*N+c.bay.x+d[0]]).filter(a=>a[0]&&rd[a[1]]==2&&!carBusy(a[1],c));
+    if(nb.length){c.nk=nb[Math.floor(rnd()*nb.length)][1];c.ck=bk;c.bay.car=null;c.bay=null;c.lot=null;c.st='drive';c.cool=40;c.path=null;for(let j=people.length-1;j>=0;j--)if(people[j].car===c)people.splice(j,1)}}
+   continue}
+  if(c.nk<0){
+   if(rd[c.ck]!=2){killCar(c);continue}
+   let nk=-1;
+   if(c.path&&c.path.length)nk=c.path[0];
+   else{const cx=c.ck%N,cz=(c.ck/N)|0,cand=D4.map(d=>[d,(cz+d[1])*N+cx+d[0],inb(cx+d[0],cz+d[1])]).filter(a=>a[2]&&rd[a[1]]==2),fw=cand.filter(a=>a[0][0]==c.dx&&a[0][1]==c.dz),nr=cand.filter(a=>!(a[0][0]==-c.dx&&a[0][1]==-c.dz)),pool=(fw.length&&rnd()<.7)?fw:(nr.length?nr:cand);
+    if(pool.length)nk=pool[Math.floor(rnd()*pool.length)][1];
+    if(c.cool<=0&&nk>=0){c.cool=15;const lots=bl.filter(b=>b.t=='park'&&b.bays.some(y=>!y.car));if(lots.length&&rnd()<.5){const lot=lots[Math.floor(rnd()*lots.length)],fb=lot.bays.filter(y=>!y.car),bay=fb[Math.floor(rnd()*fb.length)],pth=carPath(c.ck,bay.z*N+bay.x);if(pth&&pth.length){c.path=pth;c.bay=bay;c.lot=lot;bay.car=c;nk=pth[0]}}}}
+   if(nk>=0){if(carBusy(nk,c)){c.wait+=dt;if(c.wait>1.5){c.nk=nk;c.wait=0}}else{c.nk=nk;c.wait=0}}}
+  if(c.nk>=0){const tx=c.nk%N+.5,tz=((c.nk/N)|0)+.5,dx=tx-c.x,dz=tz-c.z,d=Math.hypot(dx,dz),step=c.spd*dt;
+   if(Math.abs(dx)>Math.abs(dz)){if(Math.abs(dx)>.01){c.dx=Math.sign(dx);c.dz=0}}else if(Math.abs(dz)>.01){c.dx=0;c.dz=Math.sign(dz)}
+   if(d<=step){c.x=tx;c.z=tz;c.ck=c.nk;c.nk=-1;if(c.path){c.path.shift();if(!c.path.length){c.path=null;if(c.bay)parkCar(c);else if(c.resp)resolveInc(c.resp)}}}else{c.x+=dx/d*step;c.z+=dz/d*step}}}}
+function carCol(h,k){const c=hex(h);return'rgb('+(c[0]*k|0)+','+(c[1]*k|0)+','+(c[2]*k|0)+')'}
+function pris(g,cx,cz,pts,h0,h1,col,tc){const b=pts.map(o=>projXY(cx+o[0],cz+o[1],h0)),t=pts.map(o=>projXY(cx+o[0],cz+o[1],h1)),fs=[];
+ const poly=q=>{g.beginPath();q.forEach((a,i)=>i?g.lineTo(a[0],a[1]):g.moveTo(a[0],a[1]));g.closePath();g.fill()};
+ for(let i=0;i<4;i++){const j=(i+1)%4;fs.push({q:[b[i],b[j],t[j],t[i]],y:(b[i][1]+b[j][1])/2,k:[.82,.66,.74,.58][i]})}
+ fs.sort((a,b)=>a.y-b.y);for(const f of fs){g.fillStyle=carCol(col,f.k);poly(f.q)}g.fillStyle=carCol(tc||col,1.08);poly(t)}
+function drawFurn(g,e){const sq=h=>[[h,h],[h,-h],[-h,-h],[-h,h]];
+ if(e.k=='stl'){const S=projXY(e.x,e.z,2);g.fillStyle='rgba(0,0,0,.2)';g.beginPath();g.ellipse(S[0],S[1],10,4.5,0,0,6.3);g.fill();pris(g,e.x,e.z,sq(.17),2,2.42,'#7a4f26','#a8743c');return}
+ const hx=.92,hz=.36,S=projXY(e.x,e.z,2);g.fillStyle='rgba(0,0,0,.22)';g.beginPath();g.ellipse(S[0],S[1],38,14,0,0,6.3);g.fill();
+ for(const q of [[-.8,-.26],[-.8,.26],[.8,-.26],[.8,.26]].sort((a,b)=>(a[0]+a[1])-(b[0]+b[1])))pris(g,e.x+q[0],e.z+q[1],sq(.05),2,2.55,'#5a3a1a');
+ pris(g,e.x,e.z,[[hx,hz],[hx,-hz],[-hx,-hz],[-hx,hz]],2.55,2.68,'#8a5e2e','#d6a560');
+ if(!SKIPSEAT)for(const q of e.seats)if(q.p&&q.p.sit)pris(g,q.x+.5,e.z-q.dz*.2,sq(.07),2.68,2.82,'#f4efe2','#8a4a1a')}
+let SKIPSEAT=false;
+function drawSeats(f){const sq=h=>[[h,h],[h,-h],[-h,-h],[-h,h]];for(const q of f.seats)if(q.p&&q.p.sit)pris(ctx,q.x+.5,f.z-q.dz*.2,sq(.07),2.68,2.82,'#f4efe2','#8a4a1a')}
+function drawCar(g,v0){const lo=v0.st=='park'?0:.18,x=v0.x-v0.dz*lo,z=v0.z+v0.dx*lo,hx=v0.dx,hz=v0.dz,pt=(u,w)=>[hx*u-hz*w,hz*u+hx*w],S=projXY(x,z,2);
+ g.fillStyle='rgba(0,0,0,.28)';g.beginPath();g.ellipse(S[0],S[1],22,9,0,0,6.3);g.fill();
+ pris(g,x,z,[pt(.4,.2),pt(.4,-.2),pt(-.4,-.2),pt(-.4,.2)],2,2.3,v0.col);
+ pris(g,x,z,[pt(.12,.16),pt(.12,-.16),pt(-.24,-.16),pt(-.24,.16)],2.3,2.55,'#9cc8e0',v0.col)}
+// ---- boats & ships sailing around the island
+const vess=[],BCOL=['#ffffff','#2a7de1','#e8453c'];
+function vR(d){const a=N/2+d,r=5;return(8*(a-r)+2*Math.PI*r)/(2*Math.PI)}
+function vpos(th,d){const a=N/2+d,r=5,m=a-r,L=2*m,A=Math.PI*r/2,P=4*L+4*A,R=P/(2*Math.PI);let u=((th*R)%P+P)%P,x,z;
+ if(u<L){x=a;z=-m+u}else{u-=L;
+ if(u<A){const f=u/r;x=m+r*Math.cos(f);z=m+r*Math.sin(f)}else{u-=A;
+ if(u<L){x=m-u;z=a}else{u-=L;
+ if(u<A){const f=Math.PI/2+u/r;x=-m+r*Math.cos(f);z=m+r*Math.sin(f)}else{u-=A;
+ if(u<L){x=-a;z=m-u}else{u-=L;
+ if(u<A){const f=Math.PI+u/r;x=-m+r*Math.cos(f);z=-m+r*Math.sin(f)}else{u-=A;
+ if(u<L){x=-m+u;z=-a}else{u-=L;const f=1.5*Math.PI+u/r;x=m+r*Math.cos(f);z=-m+r*Math.sin(f)}}}}}}}
+ return[N/2+x,N/2+z]}
+function mkV(k,d,dir,th){vess.push({k:k,d:d,dir:dir,th:th,v:k=='ship'?.9:3.2,col:BCOL[vess.length%3]})}
+function initVess(){vess.length=0;const V=GX.P.vessels;mkV('ship',11,1,.5);if(V>=2)mkV('ship',15,-1,3.6);if(V>=3)mkV('ship',19,1,1.9);mkV('boat',6,1,2);mkV('boat',8,-1,4.5);if(V>=2)mkV('boat',5,1,5.6);if(V>=3)mkV('boat',10,1,.9);updVess(0)}
+function updVess(dt){for(const v of vess){v.th+=v.dir*v.v/vR(v.d)*dt;const p=vpos(v.th,v.d),q=vpos(v.th+v.dir*.02,v.d),hx=q[0]-p[0],hz=q[1]-p[1],l=Math.hypot(hx,hz)||1;v.x=p[0];v.z=p[1];v.dx=hx/l;v.dz=hz/l}}
+function drawV(g,v){const hx=v.dx,hz=v.dz,pt=(u,w)=>[hx*u-hz*w,hz*u+hx*w],sh=v.k=='ship',L=sh?1.4:.55,W=sh?.5:.22;
+ const wk=[pt(-L,W*.8),pt(-L,-W*.8),pt(-L-(sh?3:2.2),0)].map(o=>projXY(v.x+o[0],v.z+o[1],1.3));
+ g.fillStyle='rgba(255,255,255,.35)';g.beginPath();g.moveTo(wk[0][0],wk[0][1]);g.lineTo(wk[1][0],wk[1][1]);g.lineTo(wk[2][0],wk[2][1]);g.closePath();g.fill();
+ if(sh){pris(g,v.x,v.z,[pt(L,W),pt(L,-W),pt(-L,-W),pt(-L,W)],1.3,1.65,'#8a3030');pris(g,v.x,v.z,[pt(.5,.34),pt(.5,-.34),pt(-.7,-.34),pt(-.7,.34)],1.65,2.05,'#f2f2f2');pris(g,v.x,v.z,[pt(-.1,.15),pt(-.1,-.15),pt(-.4,-.15),pt(-.4,.15)],2.05,2.45,'#c0392b')}
+ else{pris(g,v.x,v.z,[pt(L,W),pt(L,-W),pt(-L,-W),pt(-L,W)],1.3,1.5,v.col);pris(g,v.x,v.z,[pt(.1,.15),pt(.1,-.15),pt(-.25,-.15),pt(-.25,.15)],1.5,1.78,'#9cc8e0',v.col)}}
+function drawVess(front,z){for(const v of vess){if(v.x===undefined)continue;const q=rot(v.x,v.z,cam.ang);if(((q[0]+q[1])>=N)!==front)continue;const s=projXY(v.x,v.z,1.4);if(s[0]<cX-VW/2/z-120||s[0]>cX+VW/2/z+120||s[1]<cY-VH/2/z-120||s[1]>cY+VH/2/z+120)continue;drawV(ctx,v)}}
+// ---- fishing
+function edgeDir(x,z){const d=[[x,[-1,0]],[N-1-x,[1,0]],[z,[0,-1]],[N-1-z,[0,1]]];d.sort((a,b)=>a[0]-b[0]);return d[0][1]}
+function fishSpot(){const ds=bl.filter(b=>b.t=='dock');if(!ds.length)return null;{const b=ds[Math.floor(rnd()*ds.length)];return{t:b.front,b:b}}const s=Math.floor(rnd()*4),t=3+Math.floor(rnd()*(N-6)),q=s==0?[t,1]:s==1?[t,N-2]:s==2?[1,t]:[N-2,t];return{t:nearestWalk(q[0],q[1]),b:null}}
+function finishFish(p){p.state='idle';p.t=1+rnd();p.fd=null;
+ if(rnd()<.85){const w=4+Math.floor(rnd()*4);p.wallet+=w;const fs=bl.filter(b=>b.t=='shop'&&b.g==3);if(fs.length){const s=fs[Math.floor(rnd()*fs.length)];s.stock=Math.min(12,s.stock+1)}const d=p.wk;if(d&&bl.includes(d)){const n=Math.min(d.cap,d.cash+1.5);gen+=n-d.cash;d.cash=n}p.bub={text:'🐟 +'+w,t:2}}else p.bub={text:'🎣 ...',t:2}}
+function drawRod(g,e){const dx=e.fd[0],dz=e.fd[1],h=projXY(e.x,e.z,2.6),tip=projXY(e.x+dx*.7,e.z+dz*.7,3.1),w=projXY(e.x+dx*1.8,e.z+dz*1.8,1.45),bob=Math.sin(performance.now()/300+e.x)*1.2;
+ g.strokeStyle='#6b4a22';g.lineWidth=1.6;g.beginPath();g.moveTo(h[0],h[1]);g.lineTo(tip[0],tip[1]);g.stroke();
+ g.strokeStyle='rgba(255,255,255,.85)';g.lineWidth=.6;g.beginPath();g.moveTo(tip[0],tip[1]);g.lineTo(w[0],w[1]+bob);g.stroke();
+ g.fillStyle='#e33';g.beginPath();g.arc(w[0],w[1]+bob,1.6,0,6.3);g.fill()}
+// ---- 4-view rotation with smooth transition (sprite renderer = 4 sides)
+let angT=0,prevAng=0;
+function rotateView(dir){angT+=dir*Math.PI/4}
+// ================= trees (cut for gold) =================
+function ask(q,opts){$('dq').textContent=q;const o=$('do');o.innerHTML='';opts.forEach(op=>{const b=document.createElement('button');b.textContent=op[0];b.onclick=()=>{$('dlg').style.display='none';if(op[1])op[1]()};o.appendChild(b)});$('dlg').style.display='flex'}
+const treeCost=()=>8+treeCut*3;
+function askTree(i){const t=trees[i],c=treeCost();if(!own(t[0],t[1])){toast(tt('🔒 This land is not bought — first buy 🗺️ Land (more land as you level up), then you can cut trees'));return}ask(tt('🌳 Cut this tree?\nCost: 🪙')+c+tt('\n(the more trees you cut, the higher the price)'),[[tt('Cut 🪙')+c,()=>{if(coins<c){toast(tt('Not enough coins 🪙'));return}const k=trees.indexOf(t);if(k<0)return;coins-=c;treeCut++;trees.splice(k,1);stampAll();hud();save()}],[tt('Never mind'),null]])}
+function bAt(x,y){for(let h=0;h<=224;h+=16){const t=tileAt(x,y+h*cam.zoom);if(t[0]<0||t[1]<0||t[0]>=N||t[1]>=N)continue;const b=bl.find(b=>{const it=ITEM[b.t],m=isH(it)?1:0;return t[0]>=b.x-m&&t[0]<=b.x+it.w-1+m&&t[1]>=b.z-m&&t[1]<=b.z+it.d-1+m});if(b)return b}return null}
+function treeAtScr(x,y){for(let h=0;h<=224;h+=16){const t=tileAt(x,y+h*cam.zoom),i=trees.findIndex(q=>q[0]==t[0]&&q[1]==t[1]);if(i>=0)return i}return -1}
+// ================= move / rotate =================
+function startMove(b){const it=ITEM[b.t];mv={b:b,i:bl.indexOf(b),x:b.x,z:b.z,f:b.f};bl.splice(mv.i,1);people.forEach(p=>{if(p.stall===b)p.hidden=true});stampAll();facing=b.f;pend={it:it,x:b.x,z:b.z,mv:b};sel=null;updCf()}
+function endMove(ok){const m=mv;if(!m)return;const b=m.b;if(ok){b.x=pend.x;b.z=pend.z;b.f=facing}else{b.x=m.x;b.z=m.z;b.f=m.f}bl.splice(m.i,0,b);people.forEach(p=>{if(p.stall===b)p.hidden=false});mv=null;pend=null;stampAll();syncCh();updCf();save()}
+function rotateSel(){const b=sel,it=ITEM[b.t];if(!(isH(it)||b.t=='shop'||b.t=='tea')){toast(tt('This cannot be rotated'));return}const f=(b.f+1)%(isH(it)?4:2),i=bl.indexOf(b);bl.splice(i,1);stampAll();const ok=canPlace(it,b.x,b.z,f);if(ok)b.f=f;bl.splice(i,0,b);stampAll();if(!ok)toast(tt('No room to rotate ✖'));save()}
+// ================= build time, pens, mine, needs, incidents =================
+const bTime=it=>Math.min(7200,Math.round(20*Math.pow(1.32,it.lv-1)*(1+.03*(level-1))));   // min 20s; grows with the item's level + your level; max 2h
+function fmtT(s){s=Math.ceil(s);return s<60?s+'s':s<3600?Math.floor(s/60)+'m '+(s%60)+'s':Math.floor(s/3600)+'h '+Math.floor(s%3600/60)+'m'}
+function doneB(b){const it=ITEM[b.t];if(it.res)spawnRes(b);if(b.t=='shop'||b.t=='tea')mkMerch(b);if(it.wk)spawnWk(b,b.t=='mine'?2:1);if(b.t=='bus')spawnBus(b);syncCh()}
+function spawnWk(b,n){for(let i=0;i<n;i++){if(people.length>=MAXPOP+40)break;const Lk=mkLook(false);Lk.apron=b.t=='mine'?'#777':'#3a8a4a';people.push({x:b.front[0]+.5,z:b.front[1]+.5,path:null,pi:0,state:'idle',t:1+i*2+rnd()*2,look:Lk,home:b,job:b,spd:1.2+rnd()*.3,face:{sx:1,sy:1},fr:rnd()*6,alpha:0,ox:(rnd()-.5)*.36,oz:(rnd()-.5)*.36,bub:null,hidden:true,sleep:false,wallet:6,going:false})}}
+function pen(x0,z0,t){const f=t=='ffarm',m=t=='mine';
+ for(let z=z0;z<z0+4;z++)for(let x=x0;x<x0+5;x++){const e=x==x0||x==x0+4||z==z0||z==z0+3;
+  if(m){st(x,1,z,e?COB:MINEH);if(e)st(x,2,z,STONE)}
+  else if(f){if(e){st(x,1,z,PLK);if((x==x0||x==x0+4)&&(z==z0||z==z0+3))st(x,2,z,LOG)}else st(x,1,z,WAT)}
+  else{st(x,1,z,DIRT);if(e)st(x,2,z,PLK)}}
+ st(x0+2,2,z0+3,0);st(x0+2,1,z0+3,f?PLK:PATH);st(x0+2,1,z0+4,PATH);st(x0+4,2,z0+4,t=='gfarm'?CRATE:HAY);if(m){st(x0,3,z0,LOG);st(x0+4,3,z0,LOG);st(x0,3,z0+3,LOG);st(x0+4,3,z0+3,LOG)}}
+
+// ================= ads for time/build skips (Adsgram init ad, else GigaPub — chosen by the app, index.html) =================
+// Only game-side perks (night->morning, -5 min build time). Limits keep ads from being too many: cooldown + daily cap.
+const AD_CD=90000,AD_DAY_MAX=12,AUTO_CD=240000,AUTO_MAX=6;let adReq=null,placedN=0;   // skips: 12/day + 90s gap · auto (natural-break) ads: 6/day + 4 min gap — the SERVER enforces the same numbers
+function adQuota(){const d=new Date().toISOString().slice(0,10);let o=null;try{o=JSON.parse(LS('bv_adq'))}catch(e){}if(!o||o.d!==d)o={d:d,n:0,t:0,an:0,at:0};return o}
+function gameAd(kind,onOk){const q=adQuota(),now=Date.now();
+ if(adReq){toast(tt('📺 Loading ad…'));return}
+ if(q.n>=AD_DAY_MAX){toast(tt('📺 Ad skips for today are used up (')+AD_DAY_MAX+tt(') — come back tomorrow'));return}
+ if(now-q.t<AD_CD){toast(tt('⏳ Next ad in ')+Math.ceil((AD_CD-(now-q.t))/1000)+tt(' seconds'));return}
+ const id=now+'_'+Math.random().toString(36).slice(2,7);adReq={id:id,kind:kind,ok:onOk};toast(tt('📺 Loading ad…'));
+ try{parent.postMessage({type:'GAME_AD_REQUEST',id:id,kind:kind},location.origin)}catch(e){adReq=null;toast(tt('Ads are not available right now'));return}
+ setTimeout(()=>{if(adReq&&adReq.id===id)adReq=null},150000)}
+function autoAd(why){if(adReq||tmode||level<3||document.hidden)return;const q=adQuota(),now=Date.now();if((q.an|0)>=AUTO_MAX||now-(q.at|0)<AUTO_CD||now-(q.t|0)<30000)return;
+ const id=now+'_a'+Math.random().toString(36).slice(2,6);adReq={id:id,kind:'auto',ok:()=>{}};
+ try{parent.postMessage({type:'GAME_AD_REQUEST',id:id,kind:'auto',why:why},location.origin)}catch(e){adReq=null;return}
+ setTimeout(()=>{if(adReq&&adReq.id===id)adReq=null},150000)}
+function skipNightAsk(){if(tmode)return;
+ if(night>.5)ask(tt('🌙 It is night.\n📺 Watch one ad and morning comes right away.\n(If you do not watch, morning will come by itself)'),[[tt('📺 Watch an ad for morning'),()=>gameAd('night',()=>{tmode=1;toast(tt('🌅 Morning is coming…'))})],[tt('I will wait'),null]]);
+ else{const left=Math.max(0,Math.round((.7722-tod)*CYC/60));toast(tt('☀ It is day — night comes in about ')+left+tt(' minutes (when it is night you can watch an ad to make it morning)'))}}
+let adBusy=0,claimB=null;
+function advMine(b,d){if(b.t!='mine'||b.bt>0)return;if(!b.mst||b.mst=='off'&&!(b.bank>0)){b.mst='run';b.mt=7200}if(b.mt===undefined)b.mt=7200;if(b.bank===undefined)b.bank=0;
+ while(d>0&&b.mst=='run'){if(d<b.mt){b.mt-=d;d=0}else{d-=b.mt;b.bank=1;b.mst='ready';b.mt=0}}}
+function claimMine(b){if(!(b.bank>0)){toast(tt('⛏ Mining in progress, remaining ')+fmtT(b.mt));return}if(adBusy)return;adBusy=1;claimB=b;toast(tt('📺 Loading ad…'));
+ try{parent.postMessage({type:'GAME_MINE_CLAIM'},location.origin)}catch(e){adBusy=0;claimB=null;return}
+ setTimeout(()=>{if(adBusy&&claimB===b){adBusy=0;claimB=null}},120000)}
+addEventListener('message',e=>{if(e.origin!==location.origin||e.source!==parent)return;const d=e.data;if(!d||typeof d!=='object')return;
+ if(d.type==='GAME_GM'){gm=+d.balance||0;hud();const L=(+d.mineLeftMs||0)/1000;if(L>0)bl.forEach(b=>{if(b.t=='mine'&&!(b.bt>0)&&(b.mst=='ready'||b.mt<L)){b.bank=0;b.mst='run';b.mt=L}})}
+ else if(d.type==='GAME_SAVE_NOW'){save()}
+  else if(d.type==='GAME_LANG'){setGameLang(d.lang)}
+  else if(d.type==='GAME_AD_RESULT'){const r=adReq;if(!r||r.id!==d.id)return;adReq=null;if(d.ok){const q=adQuota();if(r.kind=='auto'){q.an=(q.an|0)+1;q.at=Date.now()}else{q.n++;q.t=Date.now()}LSet('bv_adq',JSON.stringify(q));r.ok()}else if(r.kind!='auto')toast(d.msg||tt('Ad not available, please try again a bit later'))}
+ else if(d.type==='GAME_MINE_RESULT'){adBusy=0;const b=claimB;claimB=null;
+  if(d.ok){gm=+d.balance||gm;if(b&&bl.includes(b)){b.bank=0;b.mst='run';b.mt=7200}hud();save();toast('💠 +'+d.amount+tt(' GM$ claimed! Mining restarted'))}
+  else if(d.retryAfterMs&&b&&bl.includes(b)){b.bank=0;b.mst='run';b.mt=Math.max(1,Math.ceil(d.retryAfterMs/1000));toast(tt('⛏ Mining in progress, remaining ')+fmtT(b.mt))}
+  else toast(d.msg||tt('Claim failed, please try again'))}});
+function bInfo(b){if(b.bt>0){const c=Math.max(5,Math.ceil(b.bt/6));ask('🔨 '+ITEM[b.t].n+tt(' is being built\nRemaining: ')+fmtT(b.bt),[[tt('📺 Watch an ad to cut 5 minutes'),()=>gameAd('build',()=>{if(bl.includes(b)&&b.bt>0){b.bt=Math.max(.01,b.bt-300);toast(tt('⏩ 5 minutes saved'));save()}})],[tt('⏩ Finish now 🪙')+c,()=>{if(coins<c){toast(tt('Not enough coins 🪙'));return}coins-=c;b.bt=.01;hud()}],[tt('I will wait'),null]])}
+ else{const t=b.mst=='run'?tt('Mining in progress, batch finishes in ')+fmtT(b.mt):tt('✅ Mining done! 💠 GM$ ready — watch an ad to claim and restart');ask(tt('⛏ Mine\n')+t+tt('\nEvery 2 hours 20–40 GM$ (the exact number is decided by the server).'),[b.bank>0?[tt('📺 Watch an ad and claim'),()=>claimMine(b)]:[tt('OK'),null],[tt('Close'),null]])}}
+const LIMT={fence:[24,8],well:[2,.6],pole:[2,.6],h4:[3,.8],h6:[0,.4],shop:[1,.5],tea:[1,.2],table:[2,.6],farm:[1,.3],cfarm:[1,.2],gfarm:[1,.2],ffarm:[1,.15],mine:[1,0],dock:[1,.15],fount:[1,.1],park:[1,.2],police:[1,.05],gas:[1,.05],fire:[1,.05],hosp:[1,.05],port:[1,0],camp:[1,.15],bus:[1,.08],school:[1,.06],lamp:[4,1.5],bench:[3,1]};
+const limOf=id=>LIMT[id]?LIMT[id][0]+Math.floor(level*LIMT[id][1]):1e9,limTxt=it=>it.id=='road'?'<br>'+roads.size+'/'+PATHLIM():LIMT[it.id]?'<br>'+bl.filter(b=>b.t==it.id).length+'/'+limOf(it.id):'';
+let portV=null;
+function portTick(dt){const pt=bl.find(b=>b.t=='port'&&!b.bt);if(!pt){if(portV){const i=vess.indexOf(portV);if(i>=0)vess.splice(i,1);portV=null}return}
+ if(!portV||!vess.includes(portV)){portV={k:'ship',d:3,dir:1,th:0,v:.9,col:'#fff',done:0};vess.push(portV);updVess(0)}
+ if(portV.x===undefined)return;if(Math.hypot(portV.x-pt.cx,portV.z-pt.cz)<7){if(!portV.done){portV.done=1;for(const q of bl)if(q.t=='shop'&&!q.bt)q.stock=Math.min(18,q.stock+5);const n=Math.min(pt.cap,pt.cash+10+level);gen+=n-pt.cash;pt.cash=n;toast(tt('🚢 Imported goods arrived by ship! All shop stocks increased, port duty collected'))}}else portV.done=0}
+// ================= builders · water · electricity · NPC status =================
+// BUILDERS: 1 free builder at the start, 2nd at Lv10, 3rd at Lv20, 4th at Lv40. Each builder works on one building at a time;
+// extra buildings wait in line (oldest first) and their timer only runs once a builder is free.
+const builders=()=>1+(level>=10)+(level>=20)+(level>=40);
+function buildSim(g,fin){const G=g,idle=bl.filter(b=>!(b.bt>0));let n=0;while(g>1e-6&&n++<600){const q=bl.filter(b=>b.bt>0).slice(0,builders());if(!q.length)break;const st=Math.min(g,...q.map(b=>b.bt));q.forEach(b=>{b.bt-=st});g-=st;q.forEach(b=>{if(b.bt<=1e-6){b.bt=0;fin(b,g)}})}idle.forEach(b=>advMine(b,G))}
+// UTILITIES: a Well serves up to 4 houses within 14 tiles, a Power Pole up to 6 houses within 12 tiles (houses are served nearest-first until the capacity is used).
+let U={houses:0,pop:0,water:0,power:0,health:0,needs:100,lack:[],wells:0,poles:0,sick:0};
+function takeSrc(src,h,R){let best=null,bd=1e9;for(const s of src){if(s.left<=0||s.b.cx===undefined||h.cx===undefined)continue;const d=Math.hypot(s.b.cx-h.cx,s.b.cz-h.cz);if(d<=R&&d<bd){bd=d;best=s}}if(best){best.left--;return true}return false}
+function calcUtil(){const hs=bl.filter(b=>ITEM[b.t].res&&!b.bt),ws=bl.filter(b=>b.t=='well'&&!b.bt).map(b=>({b:b,left:ITEM.well.wcap})),ps=bl.filter(b=>b.t=='pole'&&!b.bt).map(b=>({b:b,left:ITEM.pole.pcap}));
+ const sick=new Set(incs.filter(c=>c.k=='sick').map(c=>c.b)),hosp=bl.some(b=>b.t=='hosp'&&!b.bt),needPow=level>=3;let pop=0,wp=0,pp=0,hp=0;
+ for(const h of hs){const n=ITEM[h.t].res,w=takeSrc(ws,h,ITEM.well.wr),p=takeSrc(ps,h,ITEM.pole.pr);pop+=n;if(w)wp+=n;if(p)pp+=n;hp+=n*Math.max(0,Math.min(100,100-(w?0:35)-(needPow&&!p?10:0)-(sick.has(h)?30:0)+(hosp?8:0)))}
+ U.houses=hs.length;U.pop=pop;U.water=pop?Math.round(100*wp/pop):0;U.power=pop?Math.round(100*pp/pop):0;U.health=pop?Math.round(hp/pop):0;U.wells=ws.length;U.poles=ps.length;U.sick=sick.size;
+ const L=needList();U.needs=L.length?Math.round(100*L.filter(n=>n.ok).length/L.length):100;U.lack=L.filter(n=>!n.ok).map(n=>n.l)}
+function needList(){const c=t=>bl.filter(b=>b.t==t&&!b.bt).length,hs=U.houses,pop=people.filter(p=>!p.merch&&!p.tmp&&!p.job).length;
+ return [{l:tt('🏪 Shops'),ok:(c('shop')+c('tea'))*5>=pop},{l:tt('💧 Water (build a Well)'),ok:U.water>=90},level>=3&&{l:tt('💡 Lamps'),ok:c('lamp')>=hs},level>=3&&{l:tt('⚡ Electricity (build a Power Pole)'),ok:U.power>=90},level>=5&&{l:tt('🪑 Benches / ⛲ Fountain'),ok:c('bench')+c('fount')*3>=Math.ceil(hs/2)},level>=7&&{l:tt('🥚 Farm'),ok:!!(c('cfarm')||c('gfarm'))}].filter(Boolean)}
+function needs(){calcUtil();if(!U.houses)return;const w=U.lack;rep=Math.max(0,Math.min(100,rep+(w.length?-1.5*w.length:.8)+.4*bl.filter(b=>b.t=='school'&&!b.bt).length));if(w.length)toast(tt('😟 NPCs want: ')+w.join(', '))}
+// the small status panel (top-left) + builder pill
+const STATROWS=[['❤️',tt('Health')],['😊',tt('Happy')],['📋',tt('Needs')],['💧',tt('Water')],['⚡',tt('Power')]];let statC='',utT=0;
+(function(){const s=document.getElementById('stat');STATROWS.forEach(r=>{const d=document.createElement('div');d.className='sr';d.innerHTML='<i>'+r[0]+'</i><u><s></s></u><em>--</em>';s.appendChild(d)})})();
+function renderStat(){const has=U.houses>0,v=[has?U.health:null,Math.round(rep),has?U.needs:null,has?U.water:null,has?U.power:null],key=v.join(',')+'|'+builders()+'|'+bl.filter(b=>b.bt>0).length;if(key==statC)return;statC=key;
+ const rows=$('stat').children;v.forEach((x,i)=>{const r=rows[i],f=r.children[1].firstChild,t=r.children[2];if(x===null){f.style.width='0%';t.textContent='--';return}f.style.width=x+'%';f.style.background=x>=66?'#5cc85c':x>=33?'#e8c030':'#e05050';t.textContent=x+'%'});
+ const nb=bl.filter(b=>b.bt>0).length,nB=builders();$('bld').textContent='👷 '+Math.min(nb,nB)+'/'+nB+(nb>nB?'  ⏳'+(nb-nB):'')}
+function statInfo(){calcUtil();const L=needList();ask(tt('🏝 Island status\n👥 NPCs: ')+U.pop+tt(' · 🏠 Houses: ')+U.houses+tt('\n❤️ Average health: ')+(U.houses?U.health+'%':'--')+(U.sick?' (🤒 '+U.sick+tt(' sick)'):'')+tt('\n😊 Happy: ')+Math.round(rep)+tt('%\n📋 Needs met: ')+(U.houses?U.needs+'%':'--')+tt('\n💧 Water: ')+(U.houses?U.water+'%':'--')+tt(' (💧 Wells: ')+U.wells+tt(' — each serves 4 houses)\n⚡ Electricity: ')+(U.houses?U.power+'%':'--')+tt(' (⚡ Poles: ')+U.poles+tt(' — each serves 6 houses)')+(U.houses&&U.lack.length?tt('\n\n😟 Missing: ')+U.lack.join(', '):U.houses?tt('\n\n✅ All needs met!'):tt('\n\nBuild houses first')),[[tt('OK'),null]])}
+function builderInfo(){const nb=bl.filter(b=>b.bt>0).length,nB=builders(),nx=[10,20,40].find(L=>level<L);ask(tt('👷 Builders: ')+nB+tt(' (busy ')+Math.min(nb,nB)+')'+(nb>nB?tt('\n⏳ Waiting in line: ')+(nb-nB)+tt(' building(s)'):'')+tt('\n\nEach builder works on one building at a time.\n1st: from the start · 2nd: Lv10 · 3rd: Lv20 · 4th: Lv40')+(nx?tt('\n\nNext builder: Level ')+nx+'':tt('\n\n🏆 All builders unlocked!')),[[tt('OK'),null]])}
+const INC_LV={thief:17,fire:21,sick:24},SVC={thief:['police','#2a5de0'],fire:['fire','#e02020'],sick:['hosp','#ffffff']};let incs=[],incT=90;
+function nearRd(x,z){let best=-1,bd=1e9;for(let k=0;k<N*N;k++)if(rd[k]==2){const d=Math.abs(k%N-x)+Math.abs((k/N|0)-z);if(d<bd){bd=d;best=k}}return best}
+function sendResp(c,sv){c.fb=16;const a=nearRd(sv.front[0],sv.front[1]),t=nearRd(c.b.out[0],c.b.out[1]);if(a<0||t<0||a==t)return;const p=carPath(a,t);if(!p||!p.length)return;cars.push({x:a%N+.5,z:(a/N|0)+.5,ck:a,nk:-1,dx:1,dz:0,st:'drive',col:SVC[c.k][1],path:p,wait:0,cool:99,spd:2.8,resp:c})}
+function resolveInc(c){const i=incs.indexOf(c);if(i<0)return;incs.splice(i,1);cars.filter(v=>v.resp===c).forEach(killCar);rep=Math.min(100,rep+3);addXp(20);hud();toast({thief:tt('👮 The police caught the thief!'),fire:tt('🚒 The fire is out!'),sick:tt('🚑 The patient is at the hospital, recovering!')}[c.k])}
+function failInc(c){const l=Math.min(Math.floor(coins),Math.round((60+level*12)*(c.k=='fire'?2:1)));coins-=l;rep=Math.max(0,rep-(c.k=='sick'?5:8));hud();toast({thief:tt('🦹 A thief stole 🪙')+l+tt(' and escaped! ⭐ dropped (build a Police Station)'),fire:tt('🔥 A house burned down! 🪙-')+l+tt(' (build a Fire Station)'),sick:tt('🤒 A patient is suffering! ⭐ dropped (build a Hospital)')}[c.k])}
+function incTick(dt){incT-=dt;
+ if(incT<=0){incT=80+rnd()*80;if(rep<65&&incs.length<2){const ks=Object.keys(INC_LV).filter(k=>level>=INC_LV[k]),hs=bl.filter(b=>ITEM[b.t].res&&!b.bt);if(ks.length&&hs.length&&rnd()<(70-rep)/45){const k=ks[Math.floor(rnd()*ks.length)];incs.push({k:k,b:hs[Math.floor(rnd()*hs.length)],t:70,go:0,fb:16});toast({thief:tt('🦹 A thief broke into a house!'),fire:tt('🔥 A house is on fire!'),sick:tt('🤒 Someone has fallen sick!')}[k])}}}
+ for(const c of incs.slice()){if(!bl.includes(c.b)){incs.splice(incs.indexOf(c),1);continue}c.t-=dt;
+  if(!c.go){const sv=bl.find(b=>b.t==SVC[c.k][0]&&!b.bt);if(sv){c.go=1;sendResp(c,sv)}}
+  else{c.fb-=dt;if(c.fb<=0){resolveInc(c);continue}}
+  if(c.t<=0){incs.splice(incs.indexOf(c),1);failInc(c)}}}
+let eAcc=0,busT=0;
+function spawnBus(b){if(cars.some(c=>c.bus===b))return;const a=nearRd(b.front[0],b.front[1]);if(a<0)return;cars.push({x:a%N+.5,z:(a/N|0)+.5,ck:a,nk:-1,dx:1,dz:0,st:'drive',col:'#f5c518',path:null,wait:0,cool:1e9,spd:2.2,bus:b})}
+function busTick(dt){busT-=dt;if(busT>0)return;busT=10;cars.filter(c=>c.bus&&!bl.includes(c.bus)).forEach(killCar);for(const b of bl)if(b.t=='bus'&&!b.bt)spawnBus(b)}
+// ================= levels (1-60) =================
+// 17 Nov 2026: the game is meant to last a MONTH or more — levels go to 60 and every level needs more XP than before (about 5x slower at Lv30).
+const MAXLV=60,OLDLVX=L=>250*(L-1)*(L-1),LVX=L=>Math.round(250*(L-1)*(L-1)*(1+.15*(L-1))),GL=[1,2,4,6,22,16,12,9],lmul=()=>1+.03*(level-1);
+function lvOf(x){let l=1;while(l<MAXLV&&x>=LVX(l+1))l++;return l}
+function addXp(n){if(level>=MAXLV||n<=0)return;xp+=n;const nl=lvOf(xp);if(nl>level){const old=level;level=nl;onLevel(old)}hud()}
+function onLevel(old){const un=[];[10,20,40].forEach(L=>{if(L>old&&L<=level)un.push(tt('👷 New builder (')+builders()+tt(' total)'))});CAT.forEach(i=>{if(i.lv>old&&i.lv<=level)un.push(i.e+' '+i.n)});GL.forEach((g,i)=>{if(g>old&&g<=level)un.push(GN[i][0]+' '+tt(GN[i][1])+tt(' shop'))});if(land<LMAX&&landReq(land+1)>old&&landReq(land+1)<=level)un.push(tt('🗺️ New land (Land button)'));
+ const rw=100*level;coins+=rw;refreshBar();hud();save();
+ ask(tt('🎉 Level ')+level+'!\n'+(un.length?tt('Unlocked: ')+un.join(', ')+'\n':'')+'🪙 +'+rw+tt(' reward\n📈 Income +')+(3*(level-1))+'%'+(level>=MAXLV?tt('\n🏆 Max level!'):''),[[tt('Awesome!'),()=>setTimeout(()=>autoAd('level'),400)]])}
+// ================= roads: drag line, pay, bulldozer =================
+function lineTiles(a,b){const dx=b[0]-a[0],dz=b[1]-a[1],t=[];if(Math.abs(dx)>=Math.abs(dz)){const s=Math.sign(dx)||1;for(let x=a[0];x!=b[0]+s;x+=s)t.push([x,a[1]])}else{const s=Math.sign(dz);for(let z=a[1];z!=b[1]+s;z+=s)t.push([a[0],z])}return t}
+function wideTiles(a,b){const t=lineTiles(a,b),h=Math.abs(b[0]-a[0])>=Math.abs(b[1]-a[1]);return t.concat(t.map(q=>h?[q[0],q[1]+1]:[q[0]+1,q[1]]))}
+function setRline(a,b){const T=tool.rt,ts=(tool.wide?wideTiles(a,b):lineTiles(a,b)).map(q=>{const k=q[1]*N+q[0],w=tileWhy(q[0],q[1],{});return{x:q[0],z:q[1],ok:!w,same:!w&&rd[k]==T,why:w}});
+ rline={t:tool,tiles:ts,cost:ts.filter(q=>q.ok&&!q.same).length*tool.c};updCf()}
+function putRoad(x,z,T){const k=z*N+x;if(rd[k]==1)roads.delete(k);if(rd[k]==2)mains.delete(k);(T==1?roads:mains).add(k);rd[k]=T;st(x,1,z,T==1?((x+z)%7==0?PATH2:PATH):ASPH);DECT.delete(k);tileUpd(x,z)}
+const PATHLIM=()=>40+level*15;
+function buyLine(){const r=rline;if(!r)return;const n=r.tiles.filter(q=>q.ok&&!q.same);if(!n.length){toast(tt('Nothing to buy here'));return}if(r.t.rt==1){const lim=PATHLIM(),cur=roads.size;if(cur+n.length>lim){toast(tt('🚫 Walking Path limit ')+lim+tt(' tiles (now ')+cur+tt(') — level up to raise the limit'));return}}
+ if(coins<r.cost){toast(tt('Not enough coins 🪙 need ')+r.cost);return}
+ coins-=r.cost;n.forEach(q=>putRoad(q.x,q.z,r.t.rt));addXp(r.cost*.3);rline=null;hud();save();updCf();toast(tt('Road bought ✔')+((m=>m?' · 🔴 '+m+tt(' red tiles were skipped'):tt(' (no refund, 🚜 needed to demolish)'))(r.tiles.filter(q=>!q.ok).length)))}
+function dozeRoad(x,z){if(!inb(x,z))return;const k=z*N+x;if(!rd[k])return;const fee=rd[k]==2?10:4;if(coins<fee){toast(tt('Not enough coins 🪙'));return}coins-=fee;roads.delete(k);mains.delete(k);rd[k]=0;st(x,1,z,grd(x,z));tileUpd(x,z);wMark(x,z,1);hud();save()}
+function dozeAsk(b){const it=ITEM[b.t],fee=Math.max(5,Math.round(it.c*.25));ask('🚜 '+it.e+' '+it.n+tt(' demolish?\nCost 🪙')+fee+tt(' (no refund at all)'),[[tt('Demolish 🪙')+fee,()=>{if(coins<fee){toast(tt('Not enough coins 🪙'));return}coins-=fee;removeB(b,1)}],[tt('Never mind'),null]])}
+// ================= UI / coins / save =================
+const $=id=>document.getElementById(id),cEl=$('coins');
+function toast(m){const t=$('toast');t.textContent=m;t.style.opacity=1;clearTimeout(toast.h);toast.h=setTimeout(()=>t.style.opacity=0,2800)}
+function clockTxt(){const y=1+Math.floor((day-1)/360),m=1+Math.floor((day-1)%360/30),d=1+(day-1)%30;const hh=Math.floor(tod*24),mi=Math.floor(tod*1440%60);return(WINTER?'❄':'🌞')+(night>.6?'🌙':light>.85?'☀':(tod<.5?'🌅':'🌇'))+' '+String(hh).padStart(2,'0')+':'+String(mi).padStart(2,'0')+' M'+m+' D'+d+(tmode?' ⏩':'')}
+function hud(){cEl.textContent='🪙 '+Math.floor(coins);$('gm').textContent='💠 GM$ '+(Math.round(gm*100)/100);{const lv=$('lv'),a=LVX(level),b=LVX(level+1),pc=level>=MAXLV?100:Math.max(0,Math.min(100,Math.round((xp-a)/(b-a)*100)));lv.textContent='🏅 Lv '+level+(level>=MAXLV?' MAX':'  '+pc+'%');lv.style.background='linear-gradient(90deg,rgba(255,213,74,.5) '+pc+'%,rgba(24,18,10,.7) '+pc+'%)'}$('pop').textContent='👥 '+people.filter(p=>!p.merch&&!p.tmp).length+'  ⭐ '+Math.round(rep);const b=$('bC');if(b)b.innerHTML='<b>📜</b>'+(cmps.length||'')}
+function earn(n,x,y){if(n<=0)return;coins+=n;addXp(n*.25);hud();floaters.push({s:'+'+n,x:x,y:y,t:1.2});}
+function save(){LSet('bv2',JSON.stringify({v:2,lv:level,tut:tut,c:coins,rep:rep,day:day,tod:tod,rate:rate,t:Date.now(),trees:trees,roads:[...roads],mains:[...mains],tc:treeCut,land:land,xp:xp,n:N,bl:bl.map(b=>({t:b.t,x:b.x,z:b.z,f:b.f,s:b.s,g:b.g,cash:b.cash,stock:b.stock,bt:b.bt,mst:b.mst,mt:b.mt,bank:b.bank}))}))}
+addEventListener('pagehide',save);addEventListener('visibilitychange',()=>{if(document.hidden)save()});
+function loadGame(){let s=null;try{s=JSON.parse(LS('bv2'))}catch(e){}
+ if(s&&s.bl){tut=s.tut!==undefined?s.tut:99;coins=s.c;rep=s.rep;day=s.day;tod=s.tod;rate=s.rate||0;const o0=s.n||80,mg=o0!==N,O=(N-o0)>>1,mk=k=>mg?(((k/o0|0)+O)*N+(k%o0)+O):k;trees=(s.trees||[]).map(t=>mg?[t[0]+O,t[1]+O,t[2]]:t);roads=new Set((s.roads||[]).map(mk));mains=new Set((s.mains||[]).map(mk));if(mg)for(let i=0;i<320;i++){const x=6+Math.floor(rnd()*(N-12)),z=6+Math.floor(rnd()*(N-12));if(x>=O-1&&x<O+o0+1&&z>=O-1&&z<O+o0+1)continue;if(!trees.some(t=>Math.abs(t[0]-x)<2&&Math.abs(t[1]-z)<2))trees.push([x,z,rnd()<.3])}treeCut=s.tc||0;bl=s.bl.map(o=>Object.assign({id:uid++,cash:0,stock:6,rt:5,g:0,f:0,s:0},mg?Object.assign({},o,{x:o.x+O,z:o.z+O}):o));
+  if(s.land!==undefined)land=s.land;else{let d=0;const ex=b=>{const it=ITEM[b.t];if(b.t=='dock'||b.t=='port')return;d=Math.max(d,Math.abs(b.x-N/2),Math.abs(b.x+it.w-N/2),Math.abs(b.z-N/2),Math.abs(b.z+it.d-N/2))};bl.forEach(ex);[...roads,...mains].forEach(k=>{d=Math.max(d,Math.abs(k%N+.5-N/2)+1,Math.abs(((k/N)|0)+.5-N/2)+1)});land=Math.max(0,Math.min(LMAX,Math.ceil((d-10)/3)))}
+  xp=s.xp!==undefined?s.xp:bl.reduce((a,b)=>a+ITEM[b.t].c*.3,0)+roads.size*.6+mains.size*1.8;
+  if(s.v!==2){let ol=1;while(ol<30&&xp>=OLDLVX(ol+1))ol++;const fr=ol>=30?0:Math.max(0,Math.min(1,(xp-OLDLVX(ol))/(OLDLVX(ol+1)-OLDLVX(ol))));xp=LVX(ol)+fr*(LVX(ol+1)-LVX(ol))}   // old saves keep their level
+  level=lvOf(xp);const away=Math.min((Date.now()-s.t)/1000,28800),aw7=Math.min((Date.now()-s.t)/1000,604800);buildSim(aw7,(b,l)=>advMine(b,l));if(away>120&&rate>0){const g=Math.floor(away/60*rate*.4);if(g>0){coins+=g;toast(tt('Offline income while away +')+g+' 🪙')}}}
+ else{for(let i=0;i<420;i++){const x=6+Math.floor(rnd()*(N-12)),z=6+Math.floor(rnd()*(N-12)),inner=Math.abs(x-N/2)<14&&Math.abs(z-N/2)<14;if(inner&&rnd()<.93)continue;if(!trees.some(t=>Math.abs(t[0]-x)<2&&Math.abs(t[1]-z)<2))trees.push([x,z,rnd()<.3])}
+  tut=0}
+ stampAll();for(const b of bl)if(!b.bt)doneB(b);initVess();refreshBar();hud()}
+// build bar
+const bar=$('bar');
+function mkBtn(h,c){const b=document.createElement('button');b.className='it'+(c?' '+c:'');b.innerHTML=h;return b}
+const bC=mkBtn('<b>📜</b>');bC.id='bC';bC.onclick=()=>{if(cmps[0])openCmp(cmps[0]);else toast(tt('No complaints right now 🙂'))};bar.appendChild(bC);
+CAT.forEach(it=>{const b=mkBtn('<b>'+it.e+'</b>'+it.n+(it.c?' '+it.c:''));b.dataset.id=it.id;b.onclick=()=>setTool(it.id);bar.appendChild(b)});
+const bLd=mkBtn('');bLd.id='bLd';bar.insertBefore(bLd,bC.nextSibling);
+function updLandBtn(){const s=land+1;if(land>=LMAX){bLd.innerHTML='<b>🗺️</b>'+tt('Land MAX');bLd.style.opacity=.7}else if(level<landReq(s)){bLd.innerHTML='<b>🔒</b>'+tt('Land Lv')+landReq(s);bLd.style.opacity=.55}else{bLd.innerHTML='<b>🗺️</b>'+tt('Land')+' '+landCost(s);bLd.style.opacity=1}}
+function landAsk(){if(land>=LMAX){toast(tt('🏆 The whole island is yours!'));return}const s=land+1,c=landCost(s),r=LR(s)*2,r0=LR(land)*2;
+ if(level<landReq(s)){ask(tt('🔒 The next land unlocks at Level ')+landReq(s)+tt('\n(you are now Level ')+level+tt(')\nLand size: ')+r0+'×'+r0+' → '+r+'×'+r,[[tt('OK'),null]]);return}
+ ask(tt('🗺️ Expand your land?\nSize: ')+r0+'×'+r0+' → '+r+'×'+r+tt('\nCost: 🪙')+c+tt('\n(you will be able to cut trees on the new land too)'),[[tt('Buy 🪙')+c,()=>{if(coins<c){toast(tt('Not enough coins 🪙'));return}coins-=c;land=s;dirtyW=true;addXp(c*.15);hud();refreshBar();save();toast(tt('🗺️ New land bought!'));setTimeout(()=>autoAd('land'),2500)}],[tt('Never mind'),null]])}
+bLd.onclick=landAsk;
+function refreshBar(){updLandBtn();for(const b of bar.children){const it=ITEM[b.dataset.id];if(!it)continue;const lk=it.lv>level;b.innerHTML=lk?'<b>🔒</b>'+it.n+' Lv'+it.lv:'<b>'+it.e+'</b>'+it.n+(it.c?' '+it.c:'')+limTxt(it);b.style.opacity=lk?.55:1}}refreshBar();
+function subRow(){const s=$('sub');s.innerHTML='';if(!tool||tool.id!='shop'){s.style.display='none';return}s.style.display='flex';GN.forEach((g,i)=>{const lk=GL[i]>level,b=mkBtn('<b>'+(lk?'🔒':g[0])+'</b>'+(lk?'Lv'+GL[i]:'🪙'+priceOf(i)),i==shopG?'on':'');b.onclick=()=>{if(lk){toast(tt('🔒 Level ')+GL[i]+tt(' needed to unlock'));return}shopG=i;subRow()};s.appendChild(b)})}
+function setTool(id){if(mv)endMove(false);if(ITEM[id].lv>level){toast(tt('🔒 Level ')+ITEM[id].lv+tt(' needed to unlock'));return}sel=null;rline=null;tool=(tool&&tool.id==id)?null:ITEM[id];pend=null;for(const b of bar.children)b.classList.toggle('on',!!tool&&b.dataset.id==tool.id);subRow();updCf();if(tool)toast(tool.rt?tt('Drag to set the road direction, then press ✔ (a bought road cannot be refunded)'):tool.id=='dozer'?tt('Tap/drag on a road to demolish it (fee applies); tap a house and it will ask'):tt('Tap the land to choose a spot, then press ✔'))}
+function updCf(){const c=$('cf');c.innerHTML='';
+ const add=(t,f)=>{const b=mkBtn(t);b.onclick=f;c.appendChild(b)},sp=t=>{const s=document.createElement('span');s.textContent=t;c.appendChild(s)};
+ if(pend){const it=pend.it,bk=blockers(it,pend.x,pend.z,facing),ok=!bk.length;sp((pend.mv?'✥ ':it.e+' ')+it.n+(pend.mv?'':' 🪙'+it.c)+(ok?'':' ✖ '+bk[0].w));
+  add('⟳',()=>{facing=(facing+1)%(isH(it)?4:2);updCf()});
+  add('✔',()=>{if(pend.mv){if(canPlace(it,pend.x,pend.z,facing))endMove(true);else toast(tt('No room here ✖'))}else if(place(it,pend.x,pend.z)){pend=null;updCf()}});
+  add('✖',()=>{if(pend.mv)endMove(false);else{pend=null;updCf()}})}
+ else if(rline){const n=rline.tiles.filter(q=>q.ok&&!q.same).length,bad=rline.tiles.some(q=>!q.ok);sp(tool.e+' '+tool.n+' · '+n+tt(' tiles · 🪙')+rline.cost+(bad?' ⚠ 🔴='+rline.tiles.find(q=>!q.ok).why:''));add('✔',buyLine);add('✖',()=>{rline=null;updCf()})}
+ else if(sel){const it=ITEM[sel.t];sp(it.e+' '+it.n);add('⟳',rotateSel);add('✥',()=>startMove(sel));add('🗑',()=>{removeB(sel);updCf()});add('✖',()=>{sel=null;updCf()})}
+ else{c.style.display='none';return}
+ c.style.display='flex'}
+function tileAt(sx,sy){const X=(sx-VW/2)/cam.zoom+cX,Y=(sy-VH/2)/cam.zoom+cY,w=unrot((X/32+(Y+32)/16)/2,((Y+32)/16-X/32)/2,cam.ang);return[Math.floor(w[0]),Math.floor(w[1])]}
+// ================= input =================
+const pts=new Map(),vel={x:0,y:0};let moved=0,downT=0,pinch0=0,zoom0=1,lastMid=[0,0],lastT=0,lastMv=0,lastTile=-1,st0=null;
+function clampZoom(z){return Math.max(.22,Math.min(2.4,z))}
+function pan(dx,dy){const P=projXY(cam.fx,cam.fz,2);setFocusFromProj(P[0]-dx/cam.zoom,P[1]-dy/cam.zoom)}
+function mid(){const a=[...pts.values()];return[(a[0].x+a[1].x)/2,(a[0].y+a[1].y)/2]}
+function tapAt(x,y){for(const c of gmSpots){if(Math.hypot(x-c.x,y-c.y)<Math.max(28,c.r+12)){claimMine(c.b);return}}
+ for(const c of coinSpots){if(Math.hypot(x-c.x,y-c.y)<Math.max(26,c.r+12)){const b=c.s,v=Math.floor(b.cash);b.cash-=v;earn(v,c.x,c.y-20);const m=people.find(p=>p.stall===b);if(m)m.bub={text:'Thank you!',t:2};return}}
+ let best=null,bd=1e9;for(const it of screens){const s=toScr(it.e.x,it.e.z,2),h=(it.e.look&&it.e.look.kid?40:56)*cam.zoom,dx=Math.abs(x-s[0]),dy=y-(s[1]-h/2);if(dx<22*Math.max(.7,cam.zoom*1.2)&&Math.abs(dy)<h/2+14){const d=dx+Math.abs(dy);if(d<bd){bd=d;best=it.e}}}
+ if(best&&best.cmp){openCmp(best.cmp);return}
+ if(pend&&pend.mv){const t=tileAt(x,y);pend.x=t[0]-(pend.it.w>>1);pend.z=t[1]-(pend.it.d>>1);updCf();return}
+ if(tool){const t=tileAt(x,y),ok=t[0]>=0&&t[1]>=0&&t[0]<N&&t[1]<N;
+  if(tool.id=='dozer'){if(ok&&rd[t[1]*N+t[0]]){dozeRoad(t[0],t[1]);return}const i=treeAtScr(x,y);if(i>=0){askTree(i);return}const b=bAt(x,y);if(b)dozeAsk(b);return}
+  if(!ok)return;if(tool.rt){setRline(t,t)}else if(tool.one)place(tool,t[0],t[1]);else{pend={it:tool,x:t[0]-(tool.w>>1),z:t[1]-(tool.d>>1)};updCf()}return}
+ if(sel){const b=bAt(x,y);sel=(b&&b!==sel)?b:null;updCf();return}
+ if(!best){const mb=bAt(x,y);if(mb&&(mb.bt>0||mb.t=='mine')){bInfo(mb);return}}
+ if(best){best.bub={text:best.merch?MPHR[Math.floor(Math.random()*MPHR.length)]:PHR[Math.floor(Math.random()*PHR.length)],t:2.6};return}
+ const ti=treeAtScr(x,y);if(ti>=0)askTree(ti)}
+let lpT=0,lpDone=false,ang0=0,tw=0,twOn=false;const smp=[];let dragging=false,acc={x:0,y:0},zT=null,zM=[0,0];
+function zoomAt(mx,my,z2){const z=cam.zoom,P=projXY(cam.fx,cam.fz,2),cx=P[0],cy=P[1]-20,X=(mx-VW/2)/z+cx,Y=(my-VH/2)/z+cy;cam.zoom=z2;setFocusFromProj(X-(mx-VW/2)/z2,Y-(my-VH/2)/z2+20)}
+cv.addEventListener('pointerdown',e=>{e.preventDefault();try{cv.setPointerCapture(e.pointerId)}catch(_){}
+ if(pts.size>=2)pts.clear();
+ pts.set(e.pointerId,{x:e.clientX,y:e.clientY});vel.x=vel.y=0;smp.length=0;zT=null;
+ if(pts.size==1){moved=0;dragging=false;acc.x=acc.y=0;downT=performance.now();lastTile=-1;st0=tileAt(e.clientX,e.clientY);clearTimeout(lpT);lpDone=false;if(!tool&&!pend){const sx=e.clientX,sy=e.clientY;lpT=setTimeout(()=>{if(pts.size==1&&moved<=8){const b=bAt(sx,sy);if(b){lpDone=true;sel=b;updCf();try{navigator.vibrate(20)}catch(_){}}}},480)}}
+ else{clearTimeout(lpT);const a=[...pts.values()];pinch0=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);zoom0=cam.zoom;ang0=Math.atan2(a[1].y-a[0].y,a[1].x-a[0].x);tw=0;twOn=false;moved=99;dragging=true;lastMid=mid();zM=lastMid}});
+cv.addEventListener('pointermove',e=>{const p=pts.get(e.pointerId);if(!p)return;e.preventDefault();
+ if(pts.size==1){const dx=e.clientX-p.x,dy=e.clientY-p.y;moved+=Math.abs(dx)+Math.abs(dy);p.x=e.clientX;p.y=e.clientY;
+  if(tool&&tool.rt){if(moved>6){const t=tileAt(e.clientX,e.clientY);let en=Math.abs(t[0]-st0[0])>=Math.abs(t[1]-st0[1])?[t[0],st0[1]]:[st0[0],t[1]];if(Math.abs(en[0]-st0[0])>39)en[0]=st0[0]+Math.sign(en[0]-st0[0])*39;if(Math.abs(en[1]-st0[1])>39)en[1]=st0[1]+Math.sign(en[1]-st0[1])*39;const k=en[1]*N+en[0];if(k!=lastTile){lastTile=k;setRline(st0,en)}}}else if(tool&&tool.id=='fence'){if(moved>6){const t=tileAt(e.clientX,e.clientY),k=t[1]*N+t[0];if(lastTile==-1&&st0&&inb(st0[0],st0[1]))placeFence(st0[0],st0[1]);if(inb(t[0],t[1])&&k!=lastTile){lastTile=k;placeFence(t[0],t[1])}}}else if(tool&&tool.id=='dozer'){if(moved>6){const t=tileAt(e.clientX,e.clientY),k=t[1]*N+t[0];if(inb(t[0],t[1])&&k!=lastTile){lastTile=k;dozeRoad(t[0],t[1])}}}
+  else{if(!dragging){acc.x+=dx;acc.y+=dy;if(moved>8){dragging=true;pan(acc.x,acc.y);smp.length=0}}
+   else{pan(dx,dy);const n=performance.now();smp.push([n,dx,dy]);while(smp.length&&n-smp[0][0]>100)smp.shift()}}}
+ else{p.x=e.clientX;p.y=e.clientY;const a=[...pts.values()],d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y),m=mid();
+  if(pinch0>10)zoomAt(m[0],m[1],Math.max(.17,Math.min(3.2,zoom0*d/pinch0)));
+  const jx=m[0]-lastMid[0],jy=m[1]-lastMid[1];if(Math.hypot(jx,jy)<150)pan(jx,jy);
+  {const ang=Math.atan2(a[1].y-a[0].y,a[1].x-a[0].x);let da=ang-ang0;while(da>Math.PI)da-=2*Math.PI;while(da<-Math.PI)da+=2*Math.PI;ang0=ang;if(!twOn){tw+=da;if(Math.abs(tw)>.16){twOn=true;cam.ang+=tw}}else cam.ang+=da;angT=cam.ang;dirtyW=dirtyW}
+  lastMid=m;zM=m}});
+const up=e=>{const had=pts.has(e.pointerId);pts.delete(e.pointerId);clearTimeout(lpT);if(!had)return;
+ if(pts.size==0){
+  if(fenceDirty){fenceDirty=false;save();refreshBar()}
+  if(lpDone){lpDone=false}
+  else if(moved<=8&&performance.now()-downT<500&&e.type=='pointerup')tapAt(e.clientX,e.clientY);
+  else if(dragging&&!(tool&&tool.paint)){const n=performance.now();while(smp.length&&n-smp[0][0]>100)smp.shift();
+   if(smp.length>1){const t=Math.max(40,n-smp[0][0]);let sx=0,sy=0;smp.forEach(s=>{sx+=s[1];sy+=s[2]});vel.x=Math.max(-3,Math.min(3,sx/t));vel.y=Math.max(-3,Math.min(3,sy/t))}}
+  if(cam.zoom<.22||cam.zoom>2.4)zT=clampZoom(cam.zoom)}
+ else if(pts.size==1){dragging=true;vel.x=vel.y=0;smp.length=0}};
+cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
+
+cv.addEventListener('touchstart',e=>e.preventDefault(),{passive:false});cv.addEventListener('touchmove',e=>e.preventDefault(),{passive:false});
+cv.addEventListener('wheel',e=>{e.preventDefault();zoomAt(e.clientX,e.clientY,clampZoom(cam.zoom*(e.deltaY<0?1.12:.89)))},{passive:false});
+cv.addEventListener('contextmenu',e=>e.preventDefault());
+addEventListener('keydown',e=>{if(e.key=='q')angT-=Math.PI/4;if(e.key=='e')angT+=Math.PI/4;if(e.key=='+'||e.key=='=')cam.zoom=clampZoom(cam.zoom*1.2);if(e.key=='-')cam.zoom=clampZoom(cam.zoom/1.2);const s=.8;if(e.key=='ArrowLeft'||e.key=='a'){const P=projXY(cam.fx,cam.fz,2);setFocusFromProj(P[0]-s*32,P[1])}if(e.key=='ArrowRight'||e.key=='d'){const P=projXY(cam.fx,cam.fz,2);setFocusFromProj(P[0]+s*32,P[1])}if(e.key=='ArrowUp'||e.key=='w'){const P=projXY(cam.fx,cam.fz,2);setFocusFromProj(P[0],P[1]-s*16)}if(e.key=='ArrowDown'||e.key=='s'){const P=projXY(cam.fx,cam.fz,2);setFocusFromProj(P[0],P[1]+s*16)}});
+cv.addEventListener('touchend',e=>{if(e.touches.length==0)pts.clear()});cv.addEventListener('touchcancel',()=>pts.clear());addEventListener('blur',()=>pts.clear());cv.addEventListener('lostpointercapture',e=>{pts.delete(e.pointerId)});
+
+const tap=(id,f)=>{$(id).addEventListener('click',e=>{e.preventDefault();f()})};
+tap('bR',()=>rotateView(1));tap('bL',()=>rotateView(-1));tap('bld',builderInfo);$('stat').onclick=statInfo;tap('bQ',gfxMenu);tap('bI',()=>zoomAt(VW/2,VH/2,clampZoom(cam.zoom*1.25)));tap('bO',()=>zoomAt(VW/2,VH/2,clampZoom(cam.zoom/1.25)));
+tap('bH',()=>{cam.fx=N/2;cam.fz=N/2;cam.zoom=defZoom()});tap('bT',skipNightAsk);
+// ================= graphics menu (🎮): Auto / Smooth / High / Ultra =================
+function gfxMenu(){const cur=GX.mode,nm=m=>(cur===m?'✓ ':'')+tt(m=='auto'?'Auto (best for my phone)':m=='smooth'?'Smooth (weak phones)':m=='high'?'High':'Ultra (strong phones)');
+ ask(tt('🎮 Graphics quality')+'\n'+tt('Now: ')+(cur=='auto'?tt('Auto')+' → ':'')+tt(GX.name(GX.P.id)),['auto','smooth','high','ultra'].map(m=>[nm(m),()=>GX.setMode(m)]).concat([[tt('Never mind'),null]]))}
+GX.onChange(why=>{resize();initVess();
+ if(why=='lag')toast(tt('⚡ The game was lagging, switched to ')+tt(GX.name(GX.P.id)));
+ else if(why=='tip')toast(tt('Tip: choose Smooth in the 🎮 menu if the game feels slow.'));
+ else if(why=='mode')toast(tt('Graphics: ')+(GX.mode=='auto'?tt('Auto')+' → ':'')+tt(GX.name(GX.P.id)))});
+// ================= guide for new players: the Chief welcomes you, then step by step (path -> house -> villager says Namaste -> well -> shop) =================
+const TG_C1="Hello! I am the Chief of this village. 👴\nWelcome to GameVo Mine village!";
+const TG_C2="This little piece of land is yours. Build roads, houses and shops, and your villagers will work and earn 🪙 coins for you.";
+const TG_C3="No worry, I will guide you step by step. Let us build your first Path!";
+const TG_S1="Step 1 · Build a Path 🛣\nPick 🛣 Path in the bottom bar, drag your finger on the ground to draw a line, then press ✔.";
+const TG_S2="Step 2 · Build a House 🏠\nPick 🏠 House, tap a spot next to your Path, then press ✔.";
+const TG_S3="👷 Your builder is building the house.\nWatch the timer above it. Tap the house to watch an ad and cut 5 minutes.";
+const TG_V1="Namaste! 🙏 I am your first villager. Thank you for my new home!";
+const TG_V2="Here is how to run this village:\n💧 give us water (Well)\n⚡ give us power (Power Pole)\n🏪 build shops where we can buy things\nHappy villagers pay you more 🪙.";
+const TG_V3="Tap the 🪙 coins above houses and shops to collect them. Look at ❤️ 😊 📋 💧 ⚡ in the status panel to see how we feel.";
+const TG_S5="Step 3 · Build a Well 💧\nMy family needs water. Pick 💧 Well and place it near the houses.";
+const TG_S6="Step 4 · Build a Shop 🏪\nWe want to buy things! Pick 🏪 Shop and place it next to a Path (keep the yellow tile in front empty).";
+const TG_O1="Wonderful! Your village is alive! 🎉\nHere is a welcome gift: +300 🪙";
+const TG_O2="Level up to unlock more land (the ☁ clouds will clear), new buildings and more builders. At night, watch an ad to skip to morning. Have fun!";
+const TGAV={chief:'<svg viewBox="0 0 16 16" shape-rendering="crispEdges"><rect width="16" height="16" fill="#8fd0f0"/><rect x="3" y="1" width="10" height="3" fill="#6b3f1d"/><rect x="2" y="4" width="12" height="2" fill="#8a5222"/><rect x="2" y="4" width="12" height="1" fill="#ffd54a"/><rect x="4" y="6" width="8" height="5" fill="#f1c27d"/><rect x="5" y="7" width="2" height="2" fill="#fff"/><rect x="9" y="7" width="2" height="2" fill="#fff"/><rect x="6" y="8" width="1" height="1" fill="#222"/><rect x="10" y="8" width="1" height="1" fill="#222"/><rect x="3" y="10" width="10" height="5" fill="#f2f2f2"/><rect x="6" y="12" width="4" height="1" fill="#d8d8d8"/><rect x="7" y="10" width="2" height="1" fill="#e8a8a0"/><rect x="2" y="14" width="12" height="2" fill="#2a5de0"/></svg>',
+ vill:'<svg viewBox="0 0 16 16" shape-rendering="crispEdges"><rect width="16" height="16" fill="#8fd0f0"/><rect x="4" y="2" width="8" height="3" fill="#3a2a1a"/><rect x="3" y="4" width="10" height="2" fill="#3a2a1a"/><rect x="4" y="5" width="8" height="6" fill="#f1c27d"/><rect x="5" y="7" width="2" height="2" fill="#fff"/><rect x="9" y="7" width="2" height="2" fill="#fff"/><rect x="6" y="8" width="1" height="1" fill="#222"/><rect x="10" y="8" width="1" height="1" fill="#222"/><rect x="6" y="10" width="4" height="1" fill="#c0564a"/><rect x="2" y="11" width="12" height="5" fill="#2a5de0"/><rect x="7" y="11" width="2" height="2" fill="#f1c27d"/></svg>'};
+let tgTm=0,tgKey='',tgTyping=false,tgWho='chief',tgFn=null;
+function tgText(key,instant){tgKey=key;const el=$('tgt'),t=tt(key),ch=Array.from(t);clearInterval(tgTm);if(instant){el.textContent=t;tgTyping=false;return}let i=0;tgTyping=true;el.textContent='';tgTm=setInterval(()=>{i+=2;el.textContent=ch.slice(0,i).join('');if(i>=ch.length){clearInterval(tgTm);tgTyping=false}},22)}
+function tgOpen(who,modal){tgWho=who;$('tg').className='on'+(modal?' m':'');$('tgav').innerHTML=TGAV[who];$('tgn').textContent=tt(who=='chief'?'Chief':'Villager');$('tgs').textContent=tt('Skip tutorial')}
+function tgClose(){clearInterval(tgTm);tgTyping=false;tgKey='';$('tg').className='';tgHl(null)}
+function tgHl(id){for(const b of bar.children)b.classList.toggle('hl',!!id&&b.dataset.id==id);if(id){const b=[...bar.children].find(x=>x.dataset.id==id);if(b&&b.scrollIntoView)try{b.scrollIntoView({inline:'center',block:'nearest'})}catch(e){}}}
+function tgPages(who,pages,done,last){let i=0;const show=()=>{tgOpen(who,true);tgText(pages[i]);$('tgx').style.display='';$('tgx').textContent=tt(i<pages.length-1?'Next ▶':(last||'Got it!'))};
+ $('tgx').onclick=()=>{if(tgTyping){tgText(tgKey,true);return}if(i<pages.length-1){i++;show()}else{tgClose();done()}};show()}
+function tgBanner(key,hl){tgOpen('chief',false);tgText(key);$('tgx').style.display='none';tgHl(hl)}
+function tutRun(){if(tut>=99)return;
+ if(tut==0)tgPages('chief',[TG_C1,TG_C2,TG_C3],()=>{tut=1;save();tutRun()},'Let us start!');
+ else if(tut==1)tgBanner(TG_S1,'road');
+ else if(tut==2)tgBanner(TG_S2,'h4');
+ else if(tut==3)tgBanner(TG_S3,null);
+ else if(tut==4)tgPages('vill',[TG_V1,TG_V2,TG_V3],()=>{tut=5;save();tutRun()});
+ else if(tut==5)tgBanner(TG_S5,'well');
+ else if(tut==6)tgBanner(TG_S6,'shop');
+ else if(tut==7)tgPages('chief',[TG_O1,TG_O2],()=>{tut=99;save();setHint()},'Finish')}
+function tutCheck(){if(tut<1||tut>=99)return;const adv=n=>{tut=n;save();tutRun()};
+ if(tut==1&&roads.size>=3)adv(2);
+ else if(tut==2&&bl.some(b=>b.t=='h4'))adv(3);
+ else if(tut==3&&bl.some(b=>b.t=='h4'&&!b.bt)){const p=people.find(q=>q.home&&!q.merch);if(p)p.bub={text:'Namaste! 🙏',t:5};tgClose();tut=4;save();setTimeout(tutRun,1500)}
+ else if(tut==5&&bl.some(b=>b.t=='well'))adv(6);
+ else if(tut==6&&bl.some(b=>b.t=='shop'||b.t=='tea')){coins+=300;hud();adv(7)}}
+function tutSkip(){tut=99;tgClose();save();setHint()}
+function tgRefresh(){if(!$('tg').classList.contains('on'))return;$('tgn').textContent=tt(tgWho=='chief'?'Chief':'Villager');$('tgs').textContent=tt('Skip tutorial');if(tgKey)tgText(tgKey,true)}
+$('tgs').onclick=tutSkip;
+setTimeout(()=>{if(tut<99)tutRun()},1800);
+setTimeout(()=>{$('hint').style.opacity=0},12000);
+// ================= main loop =================
+function catchUp(g){g=Math.min(g,604800);buildSim(g,(b,l)=>{doneB(b);advMine(b,l)});
+ if(g>120&&rate>0){const a=Math.min(g,28800),c=Math.floor(a/60*rate*.4);if(c>0){coins+=c;hud();toast(tt('Income while away +')+c+' 🪙')}}}
+let last=performance.now(),acc2=0;
+function frame(now){const rawMs=now-last;{const gp=rawMs/1000;if(gp>3)catchUp(gp)}let dt=Math.min(Math.max(rawMs/1000,0),.1);last=now;GX.tick(now,rawMs);
+ {const df=angT-cam.ang;if(Math.abs(df)>.012&&!GX.TC)cam.ang+=df*Math.min(1,dt*9);else cam.ang=angT;if(Math.abs(cam.ang)>12.57){const k=Math.round(cam.ang/6.283185307)*6.283185307;cam.ang-=k;angT-=k}}
+ updTime(dt);updPeople(dt);updCars(dt);updVess(dt);econ(dt);incTick(dt);portTick(dt);busTick(dt);
+ if(!pts.size&&(Math.abs(vel.x)>.03||Math.abs(vel.y)>.03)){pan(vel.x*dt*1000,vel.y*dt*1000);const f=Math.exp(-dt*4.5);vel.x*=f;vel.y*=f}
+ if(zT!=null&&!pts.size){const z2=cam.zoom+(zT-cam.zoom)*Math.min(1,dt*10);if(Math.abs(z2-zT)<.004){zoomAt(zM[0]||VW/2,zM[1]||VH/2,zT);zT=null}else zoomAt(zM[0]||VW/2,zM[1]||VH/2,z2)}
+ acc2+=dt;if(acc2>.5){acc2=0;$('clock').textContent=clockTxt()}
+ draw()}
+function loop(now){requestAnimationFrame(loop);if(!GX.gate(now))return;try{frame(now)}catch(e){const d=$('err');d.style.display='block';d.textContent='⚠ '+e.message}}
+setHint();document.documentElement.classList.toggle('rtl',LANG==='ar');loadGame();
+last=performance.now();requestAnimationFrame(loop);
+try{parent.postMessage({type:'GAME_READY'},location.origin)}catch(e){}
+window.__bv={cam:cam,people:people,bl:bl};
+</script></body></html>
